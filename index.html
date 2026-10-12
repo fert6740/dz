@@ -47,10 +47,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 .group { margin-top: 18px; }
 .ghead { display: flex; align-items: baseline; gap: 8px; padding: 0 6px 7px; width: 100%; }
-.ghead .t { font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--hint); flex: 1; }
+.ghead .t { padding: 4px 0; font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--hint); flex: 1; }
 .ghead .n { font-size: 12.5px; color: var(--hint); font-variant-numeric: tabular-nums; }
 .ghead .go { font-size: 12.5px; color: var(--link); font-weight: 600; }
-.ghead .chev { color: var(--hint); transition: transform .2s; }
+.ghead .chev { display: inline-block; transition: transform .2s; }
 .group.closed .chev { transform: rotate(-90deg); }
 .group.closed .list { display: none; }
 .list { background: var(--card); border-radius: 16px; overflow: hidden; }
@@ -119,6 +119,10 @@ const CHECK = '<svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>'
 const ARROW = '<svg viewBox="0 0 20 20"><path d="M7 4h9v9M16 4L5 15"/></svg>';
 
 let data = null, subj = null, lessonId = null;
+let folds = {};          // "subj/lesson/название блока" -> свёрнут ли (помнится на устройстве)
+try { folds = JSON.parse(localStorage.getItem("dz_fold") || "{}"); } catch (e) {}
+const foldKey = g => subj + "/" + lessonId + "/" + g.title;
+const isClosed = g => foldKey(g) in folds ? folds[foldKey(g)] : !!g.optional;
 const doneCache = {};   // "subj/lesson" -> Set(id)
 
 const keyOf = (s, l) => "d_" + s + "_" + l;
@@ -181,8 +185,8 @@ async function render() {
     + " · урок " + d.getDate() + " " + MONTHS[d.getMonth()] + "</h1><p>" + (nDone === main.length && main.length ? "Всё сделано 🎉" : dueLine(lesson)) + "</p></div></div>";
   lesson.groups.forEach((g, gi) => {
     const gDone = g.items.filter(i => done.has(i.id)).length;
-    html += '<div class="group' + (g.optional ? " closed" : "") + '" data-g="' + gi + '"><div class="ghead">'
-      + '<button class="t" data-fold="' + gi + '">' + esc(g.title) + (g.optional ? ' <span class="chev">▾</span>' : "") + "</button>"
+    html += '<div class="group' + (isClosed(g) ? " closed" : "") + '" data-g="' + gi + '"><div class="ghead">'
+      + '<button class="t" data-fold="' + gi + '"><span class="chev">▾</span> ' + esc(g.title) + "</button>"
       + (g.url ? '<button class="go" data-url="' + esc(g.url) + '">' + esc(g.tag || "открыть") + " ↗</button>" : "")
       + '<span class="n" data-count="' + gi + '">' + gDone + "/" + g.items.length + '</span></div><div class="list">';
     g.items.forEach(it => {
@@ -238,7 +242,13 @@ document.addEventListener("click", e => {
   if (t.dataset.url) return openLink(t.dataset.url);
   if (t.dataset.subj) { subj = t.dataset.subj; lessonId = null; return render(); }
   if (t.dataset.lesson) { lessonId = t.dataset.lesson; render().then(() => window.scrollTo(0, 0)); return; }
-  if (t.dataset.fold) { const g = t.closest(".group"); if (g.querySelector(".chev")) g.classList.toggle("closed"); }
+  if (t.dataset.fold) {
+    const el = t.closest(".group"), s = data.subjects.find(x => x.id === subj);
+    const g = s.lessons.find(l => l.id === lessonId).groups[+t.dataset.fold];
+    folds[foldKey(g)] = el.classList.toggle("closed");
+    try { localStorage.setItem("dz_fold", JSON.stringify(folds)); } catch (e) {}
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  }
 });
 
 async function fetchData() {
