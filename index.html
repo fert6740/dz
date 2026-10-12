@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex">
+<title>ДЗ</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: var(--tg-theme-secondary-bg-color, #0f1a1c);
+  --card: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #17272a));
+  --text: var(--tg-theme-text-color, #e9f1f1);
+  --hint: var(--tg-theme-hint-color, #7f9698);
+  --link: var(--tg-theme-link-color, #6ac7c1);
+  --accent: var(--tg-theme-button-color, #3fa9a2);
+  --on-accent: var(--tg-theme-button-text-color, #fff);
+  --line: rgba(128, 150, 152, .18);
+  --ok: #45c08a;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body {
+  font: 15px/1.35 -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  padding: 14px 14px calc(28px + env(safe-area-inset-bottom));
+  max-width: 640px; margin: 0 auto;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+
+.tabs { display: flex; gap: 8px; overflow-x: auto; margin: 0 -14px 14px; padding: 0 14px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; padding: 7px 14px; border-radius: 999px; background: var(--card); color: var(--hint); font-weight: 600; }
+.tab.on { background: var(--accent); color: var(--on-accent); }
+
+.hero { background: var(--card); border-radius: 18px; padding: 16px; display: flex; gap: 14px; align-items: center; }
+.ring { flex: none; width: 64px; height: 64px; position: relative; }
+.ring svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 6; }
+.ring .track { stroke: var(--line); }
+.ring .bar { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .35s ease, stroke .35s; }
+.ring.full .bar { stroke: var(--ok); }
+.ring b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; font-variant-numeric: tabular-nums; }
+.hero h1 { margin: 0 0 3px; font-size: 19px; line-height: 1.2; }
+.hero p { margin: 0; color: var(--hint); font-size: 13.5px; }
+.hero p b { color: var(--text); font-weight: 600; }
+.hero .soon { color: #e8a34a; }
+
+.group { margin-top: 18px; }
+.ghead { display: flex; align-items: baseline; gap: 8px; padding: 0 6px 7px; width: 100%; }
+.ghead .t { font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--hint); flex: 1; }
+.ghead .n { font-size: 12.5px; color: var(--hint); font-variant-numeric: tabular-nums; }
+.ghead .go { font-size: 12.5px; color: var(--link); font-weight: 600; }
+.ghead .chev { color: var(--hint); transition: transform .2s; }
+.group.closed .chev { transform: rotate(-90deg); }
+.group.closed .list { display: none; }
+.list { background: var(--card); border-radius: 16px; overflow: hidden; }
+
+.item { display: flex; align-items: stretch; min-height: 50px; }
+.item + .item { border-top: 1px solid var(--line); }
+.check { flex: none; width: 50px; display: flex; align-items: center; justify-content: center; }
+.check i { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--hint); display: flex; align-items: center; justify-content: center; transition: background .18s, border-color .18s, transform .18s; }
+.check svg { width: 14px; height: 14px; stroke: #fff; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(.4); transition: opacity .18s, transform .18s; }
+.item.done .check i { background: var(--ok); border-color: var(--ok); }
+.item.done .check svg { opacity: 1; transform: none; }
+.check:active i { transform: scale(.86); }
+.body { flex: 1; min-width: 0; padding: 10px 12px 10px 0; display: flex; flex-direction: column; justify-content: center; }
+.body .tx { overflow-wrap: anywhere; transition: color .18s; }
+.body .sub { color: var(--hint); font-size: 12.5px; margin-top: 1px; }
+.item.done .tx { color: var(--hint); text-decoration: line-through; text-decoration-color: var(--line); }
+.links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.chip { padding: 4px 10px; border-radius: 999px; background: rgba(106, 199, 193, .13); color: var(--link); font-size: 12.5px; font-weight: 600; }
+.chip:active, .arrow:active { opacity: .55; }
+.arrow { flex: none; width: 44px; display: flex; align-items: center; justify-content: center; color: var(--link); }
+.arrow svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+.older { margin-top: 26px; }
+.older > .cap { padding: 0 6px 7px; font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--hint); }
+.lrow { display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 14px; }
+.lrow + .lrow { border-top: 1px solid var(--line); }
+.lrow .d { flex: 1; font-weight: 600; }
+.lrow .c { color: var(--hint); font-variant-numeric: tabular-nums; }
+.lrow .c.ok { color: var(--ok); }
+.back { color: var(--link); font-weight: 600; padding: 2px 6px 12px; }
+.empty { text-align: center; color: var(--hint); padding: 60px 20px; }
+.foot { text-align: center; color: var(--hint); font-size: 12px; margin-top: 22px; }
+</style>
+</head>
+<body>
+<div id="app"><div class="empty">Загружаю…</div></div>
+<script>
+"use strict";
+const tg = window.Telegram && window.Telegram.WebApp;
+const inTg = !!(tg && tg.initData);
+const qs = new URLSearchParams(location.search);
+const GIST = qs.get("g") || localStorage.getItem("dz_gist") || "";
+if (qs.get("g")) localStorage.setItem("dz_gist", GIST);
+const DESKTOP = !!tg && tg.platform === "tdesktop";
+const cloud = inTg && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9") ? tg.CloudStorage : null;
+
+const store = {
+  get(key) {
+    return new Promise(res => {
+      const local = () => { try { res(JSON.parse(localStorage.getItem(key) || "null")); } catch (e) { res(null); } };
+      if (!cloud) return local();
+      cloud.getItem(key, (err, val) => { if (err || !val) return local(); try { res(JSON.parse(val)); } catch (e) { res(null); } });
+    });
+  },
+  set(key, val) {
+    const s = JSON.stringify(val);
+    try { localStorage.setItem(key, s); } catch (e) {}
+    if (cloud) cloud.setItem(key, s, () => {});
+  },
+};
+
+const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+const DAYS = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const CHECK = '<svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
+const ARROW = '<svg viewBox="0 0 20 20"><path d="M7 4h9v9M16 4L5 15"/></svg>';
+
+let data = null, subj = null, lessonId = null;
+const doneCache = {};   // "subj/lesson" -> Set(id)
+
+const keyOf = (s, l) => "d_" + s + "_" + l;
+async function loadDone(s, l) {
+  const k = s + "/" + l;
+  if (!doneCache[k]) doneCache[k] = new Set((await store.get(keyOf(s, l))) || []);
+  return doneCache[k];
+}
+const counted = lesson => lesson.groups.filter(g => !g.optional).flatMap(g => g.items);
+
+function pickLink(l) {
+  if (DESKTOP && l.pc) return l.pc;
+  return l.u || l.tg || l.pc;
+}
+function openLink(url) {
+  if (!url) return;
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  if (tg && /^https:\/\/t\.me\//.test(url) && tg.openTelegramLink) return tg.openTelegramLink(url);
+  if (tg && tg.openLink && inTg) return tg.openLink(url);
+  window.open(url, "_blank");
+}
+
+function dueLine(lesson) {
+  if (!lesson.due) return "";
+  const due = new Date(lesson.due), ms = due - Date.now();
+  const when = DAYS[due.getDay()] + " " + due.getDate() + " " + MONTHS[due.getMonth()] + ", "
+    + String(due.getHours()).padStart(2, "0") + ":" + String(due.getMinutes()).padStart(2, "0");
+  if (ms <= 0) return "Сдавалось к <b>" + when + "</b>";
+  const h = Math.floor(ms / 36e5), d = Math.floor(h / 24);
+  const left = d >= 1 ? d + " д " + (h % 24) + " ч" : h >= 1 ? h + " ч" : Math.max(1, Math.round(ms / 6e4)) + " мин";
+  return "Сдать к <b>" + when + "</b> · <span class=\"" + (h < 24 ? "soon" : "") + "\">через " + left + "</span>";
+}
+
+function ring(done, total) {
+  const r = 26, c = 2 * Math.PI * r, p = total ? done / total : 0;
+  return '<div class="ring' + (total && done === total ? " full" : "") + '"><svg viewBox="0 0 64 64">'
+    + '<circle class="track" cx="32" cy="32" r="' + r + '"/><circle class="bar" cx="32" cy="32" r="' + r + '" stroke-dasharray="' + c
+    + '" stroke-dashoffset="' + c * (1 - p) + '"/></svg><b>' + done + "/" + total + "</b></div>";
+}
+
+async function render() {
+  const app = document.getElementById("app");
+  if (!data || !data.subjects || !data.subjects.length) { app.innerHTML = '<div class="empty">Заданий пока нет</div>'; return; }
+  const s = data.subjects.find(x => x.id === subj) || data.subjects[0];
+  subj = s.id;
+  const lessons = s.lessons.slice().sort((a, b) => b.date.localeCompare(a.date));
+  const lesson = lessons.find(l => l.id === lessonId) || lessons[0];
+  let html = "";
+  if (data.subjects.length > 1) {
+    html += '<div class="tabs">' + data.subjects.map(x => '<button class="tab' + (x.id === subj ? " on" : "") + '" data-subj="' + esc(x.id) + '">'
+      + esc((x.emoji ? x.emoji + " " : "") + x.title) + "</button>").join("") + "</div>";
+  }
+  if (!lesson) { app.innerHTML = html + '<div class="empty">Заданий пока нет</div>'; return; }
+  lessonId = lesson.id;
+  const done = await loadDone(subj, lesson.id);
+  const main = counted(lesson), nDone = main.filter(i => done.has(i.id)).length;
+  const d = new Date(lesson.date + "T12:00:00");
+  if (lesson !== lessons[0]) html += '<button class="back" data-lesson="' + esc(lessons[0].id) + '">← к последнему уроку</button>';
+  html += '<div class="hero" id="hero">' + ring(nDone, main.length) + "<div><h1>" + esc((s.emoji ? s.emoji + " " : "") + s.title)
+    + " · урок " + d.getDate() + " " + MONTHS[d.getMonth()] + "</h1><p>" + (nDone === main.length && main.length ? "Всё сделано 🎉" : dueLine(lesson)) + "</p></div></div>";
+  lesson.groups.forEach((g, gi) => {
+    const gDone = g.items.filter(i => done.has(i.id)).length;
+    html += '<div class="group' + (g.optional ? " closed" : "") + '" data-g="' + gi + '"><div class="ghead">'
+      + '<button class="t" data-fold="' + gi + '">' + esc(g.title) + (g.optional ? ' <span class="chev">▾</span>' : "") + "</button>"
+      + (g.url ? '<button class="go" data-url="' + esc(g.url) + '">' + esc(g.tag || "открыть") + " ↗</button>" : "")
+      + '<span class="n" data-count="' + gi + '">' + gDone + "/" + g.items.length + '</span></div><div class="list">';
+    g.items.forEach(it => {
+      const links = (it.links || []).map(l => ({ t: l.t, url: pickLink(l) })).filter(l => l.url);
+      const single = links.length === 1 && !links[0].t;
+      html += '<div class="item' + (done.has(it.id) ? " done" : "") + '" data-id="' + esc(it.id) + '">'
+        + '<button class="check" data-toggle="' + esc(it.id) + '" aria-label="Отметить"><i>' + CHECK + "</i></button>"
+        + '<div class="body"' + (single ? ' data-url="' + esc(links[0].url) + '"' : "") + '><div class="tx">' + esc(it.text) + "</div>"
+        + (it.sub ? '<div class="sub">' + esc(it.sub) + "</div>" : "")
+        + (!single && links.length ? '<div class="links">' + links.map((l, n) => '<button class="chip" data-url="' + esc(l.url) + '">'
+            + esc(l.t || "ссылка " + (n + 1)) + "</button>").join("") + "</div>" : "")
+        + "</div>" + (single ? '<button class="arrow" data-url="' + esc(links[0].url) + '" aria-label="Открыть">' + ARROW + "</button>" : "") + "</div>";
+    });
+    html += "</div></div>";
+  });
+  const rest = lessons.filter(l => l !== lesson);
+  if (rest.length) {
+    html += '<div class="older"><div class="cap">Другие уроки</div><div class="list">';
+    for (const l of rest) {
+      const dn = await loadDone(subj, l.id), all = counted(l), n = all.filter(i => dn.has(i.id)).length, ld = new Date(l.date + "T12:00:00");
+      html += '<button class="lrow" data-lesson="' + esc(l.id) + '"><span class="d">' + ld.getDate() + " " + MONTHS[ld.getMonth()]
+        + '</span><span class="c' + (n === all.length ? " ok" : "") + '">' + n + "/" + all.length + "</span></button>";
+    }
+    html += "</div></div>";
+  }
+  if (data.updated) html += '<div class="foot">обновлено ' + esc(data.updated) + "</div>";
+  app.innerHTML = html;
+}
+
+async function toggle(id) {
+  const done = await loadDone(subj, lessonId);
+  const on = !done.has(id);
+  on ? done.add(id) : done.delete(id);
+  store.set(keyOf(subj, lessonId), [...done]);
+  const s = data.subjects.find(x => x.id === subj), lesson = s.lessons.find(l => l.id === lessonId);
+  const row = document.querySelector('.item[data-id="' + CSS.escape(id) + '"]');
+  if (row) row.classList.toggle("done", on);
+  lesson.groups.forEach((g, gi) => {
+    const el = document.querySelector('[data-count="' + gi + '"]');
+    if (el) el.textContent = g.items.filter(i => done.has(i.id)).length + "/" + g.items.length;
+  });
+  const main = counted(lesson), n = main.filter(i => done.has(i.id)).length, full = main.length && n === main.length;
+  const hero = document.getElementById("hero");
+  hero.querySelector(".ring").outerHTML = ring(n, main.length);
+  hero.querySelector("p").innerHTML = full ? "Всё сделано 🎉" : dueLine(lesson);
+  if (tg && tg.HapticFeedback) full && on ? tg.HapticFeedback.notificationOccurred("success") : tg.HapticFeedback.impactOccurred(on ? "medium" : "light");
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-toggle],[data-url],[data-subj],[data-lesson],[data-fold]");
+  if (!t) return;
+  if (t.dataset.toggle) return toggle(t.dataset.toggle);
+  if (t.dataset.url) return openLink(t.dataset.url);
+  if (t.dataset.subj) { subj = t.dataset.subj; lessonId = null; return render(); }
+  if (t.dataset.lesson) { lessonId = t.dataset.lesson; render().then(() => window.scrollTo(0, 0)); return; }
+  if (t.dataset.fold) { const g = t.closest(".group"); if (g.querySelector(".chev")) g.classList.toggle("closed"); }
+});
+
+async function fetchData() {
+  if (!GIST) throw new Error("no gist");
+  try {
+    const r = await fetch("https://api.github.com/gists/" + GIST, { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const f = (await r.json()).files["data.json"];
+    return JSON.parse(f.truncated ? await (await fetch(f.raw_url)).text() : f.content);
+  } catch (e) {
+    const r = await fetch("https://gist.githubusercontent.com/raw/" + GIST + "/data.json?t=" + Date.now());
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }
+}
+
+(async () => {
+  if (tg) { tg.ready(); tg.expand(); }
+  try { data = JSON.parse(localStorage.getItem("dz_data") || "null"); } catch (e) {}
+  if (data) await render();
+  try {
+    const fresh = await fetchData();
+    if (JSON.stringify(fresh) !== JSON.stringify(data)) {
+      data = fresh;
+      localStorage.setItem("dz_data", JSON.stringify(fresh));
+      await render();
+    }
+  } catch (e) {
+    if (!data) document.getElementById("app").innerHTML = '<div class="empty">Не удалось загрузить задания.<br>Проверьте интернет и откройте ещё раз.</div>';
+  }
+})();
+</script>
+</body>
+</html>
