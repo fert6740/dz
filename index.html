@@ -85,6 +85,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .check:active i { transform: scale(.86); }
 .body { flex: 1 1 0; min-width: 0; padding: 10px 12px 10px 0; display: flex; flex-direction: column; justify-content: center; }
 .body .tx { overflow-wrap: anywhere; transition: color .18s; }
+.tx .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--link); margin-left: 7px; vertical-align: middle; }
 .body .sub { color: var(--hint); font-size: 12.5px; margin-top: 1px; }
 .item.done .tx { color: var(--hint); text-decoration: line-through; text-decoration-color: var(--line); }
 .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
@@ -151,7 +152,7 @@ async function loadDone(s, l) {
   if (!doneCache[k]) doneCache[k] = new Set((await store.get(keyOf(s, l))) || []);
   return doneCache[k];
 }
-const counted = lesson => lesson.groups.filter(g => !g.optional).flatMap(g => g.items);
+const counted = lesson => lesson.groups.filter(g => !g.optional).flatMap(g => g.items).filter(i => !i.opt);   // opt — по желанию
 
 function pickLink(l) {
   if (DESKTOP && l.pc) return l.pc;
@@ -237,7 +238,7 @@ async function render() {
       const single = links.length === 1 && !links[0].t;
       html += '<div class="item' + (done.has(it.id) ? " done" : "") + '" data-id="' + esc(it.id) + '">'
         + '<button class="check" data-toggle="' + esc(it.id) + '" aria-label="Отметить"><i>' + CHECK + "</i></button>"
-        + '<div class="body"' + (single ? ' data-url="' + esc(links[0].url) + '"' : "") + '><div class="tx">' + esc(it.text) + "</div>"
+        + '<div class="body"' + (single ? ' data-url="' + esc(links[0].url) + '"' : "") + '><div class="tx">' + esc(it.text) + (it.opt ? '<span class="dot"></span>' : "") + "</div>"
         + (it.sub ? '<div class="sub">' + esc(it.sub) + "</div>" : "")
         + (!single && links.length ? '<div class="links">' + links.map((l, n) => '<button class="chip" data-url="' + esc(l.url) + '">'
             + esc(l.t || "ссылка " + (n + 1)) + "</button>").join("") + "</div>" : "")
