@@ -152,7 +152,7 @@ async function loadDone(s, l) {
   if (!doneCache[k]) doneCache[k] = new Set((await store.get(keyOf(s, l))) || []);
   return doneCache[k];
 }
-const counted = lesson => lesson.groups.filter(g => !g.optional).flatMap(g => g.items).filter(i => !i.opt);   // opt — по желанию
+const counted = lesson => lesson.groups.flatMap(g => g.items);   // в счёт идёт всё, и пункты «по желанию» (opt) тоже
 
 function pickLink(l) {
   if (DESKTOP && l.pc) return l.pc;
