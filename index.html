@@ -52,7 +52,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .ghead .go { font-size: 12.5px; color: var(--link); font-weight: 600; }
 .ghead .chev { display: inline-block; transition: transform .2s; }
 .group.closed .chev { transform: rotate(-90deg); }
-.group.closed .list { display: none; }
+.group.closed .list, .group.closed > .orig { display: none; }
+.section { margin-top: 18px; }
+.shead { display: flex; align-items: baseline; gap: 8px; padding: 0 6px 2px; width: 100%; }
+.shead .t { flex: 1; padding: 4px 0; font-size: 16px; font-weight: 700; }
+.shead .chev { display: inline-block; color: var(--hint); transition: transform .2s; }
+.shead .n { font-size: 12.5px; color: var(--hint); font-variant-numeric: tabular-nums; }
+.shead .go { font-size: 12.5px; color: var(--link); font-weight: 600; }
+.section.closed .chev { transform: rotate(-90deg); }
+.section.closed .sbody { display: none; }
+.section .group.sub { margin-top: 10px; }
 .list { background: var(--card); border-radius: 16px; overflow: hidden; }
 
 .item { display: flex; flex-wrap: wrap; align-items: stretch; min-height: 50px; }
@@ -200,11 +209,27 @@ async function render() {
   if (lesson !== lessons[0]) html += '<button class="back" data-lesson="' + esc(lessons[0].id) + '">← к последнему уроку</button>';
   html += '<div class="hero" id="hero">' + ring(nDone, main.length) + "<div><h1>" + esc((s.emoji ? s.emoji + " " : "") + s.title)
     + " · урок " + d.getDate() + " " + MONTHS[d.getMonth()] + "</h1><p>" + (nDone === main.length && main.length ? "Всё сделано 🎉" : dueLine(lesson)) + "</p></div></div>";
+  // Блоки с одинаковым "section" (например, Classroom: Réviser + Préparer) идут одним сворачиваемым разделом;
+  // остальные блоки не сворачиваются, кроме необязательных ("optional").
+  let openSection = null;
   lesson.groups.forEach((g, gi) => {
     const gDone = g.items.filter(i => done.has(i.id)).length;
-    html += '<div class="group' + (isClosed(g) ? " closed" : "") + '" data-g="' + gi + '"><div class="ghead">'
-      + '<button class="t" data-fold="' + gi + '"><span class="chev">▾</span> ' + esc(g.title) + "</button>"
-      + (g.url ? '<button class="go" data-url="' + esc(g.url) + '">' + esc(g.tag || "открыть") + " ↗</button>" : "")
+    if (openSection && g.section !== openSection) { html += "</div></div>"; openSection = null; }
+    if (g.section && !openSection) {
+      openSection = g.section;
+      const all = lesson.groups.filter(x => x.section === g.section).flatMap(x => x.items);
+      const sec = { title: "§" + g.section };
+      html += '<div class="section' + (isClosed(sec) ? " closed" : "") + '"><div class="shead">'
+        + '<button class="t" data-sfold="' + esc(g.section) + '"><span class="chev">▾</span> ' + esc(g.section) + "</button>"
+        + (g.url ? '<button class="go" data-url="' + esc(g.url) + '">открыть ↗</button>' : "")
+        + '<span class="n" data-scount="' + esc(g.section) + '">' + all.filter(i => done.has(i.id)).length + "/" + all.length
+        + '</span></div><div class="sbody">';
+    }
+    const foldable = !g.section && g.optional;
+    html += '<div class="group' + (foldable && isClosed(g) ? " closed" : "") + (g.section ? " sub" : "") + '" data-g="' + gi + '"><div class="ghead">'
+      + (foldable ? '<button class="t" data-fold="' + gi + '"><span class="chev">▾</span> ' + esc(g.title) + "</button>"
+                  : '<span class="t">' + esc(g.title) + "</span>")
+      + (g.url && !g.section ? '<button class="go" data-url="' + esc(g.url) + '">' + esc(g.tag || "открыть") + " ↗</button>" : "")
       + infoBtn(g.orig) + '<span class="n" data-count="' + gi + '">' + gDone + "/" + g.items.length + "</span></div>"
       + origHtml(g.orig) + '<div class="list">';
     g.items.forEach(it => {
@@ -221,6 +246,7 @@ async function render() {
     });
     html += "</div></div>";
   });
+  if (openSection) html += "</div></div>";
   const rest = lessons.filter(l => l !== lesson);
   if (rest.length) {
     html += '<div class="older"><div class="cap">Другие уроки</div><div class="list">';
@@ -247,6 +273,10 @@ async function toggle(id) {
     const el = document.querySelector('[data-count="' + gi + '"]');
     if (el) el.textContent = g.items.filter(i => done.has(i.id)).length + "/" + g.items.length;
   });
+  document.querySelectorAll("[data-scount]").forEach(el => {
+    const all = lesson.groups.filter(x => x.section === el.dataset.scount).flatMap(x => x.items);
+    el.textContent = all.filter(i => done.has(i.id)).length + "/" + all.length;
+  });
   const main = counted(lesson), n = main.filter(i => done.has(i.id)).length, full = main.length && n === main.length;
   const hero = document.getElementById("hero");
   hero.querySelector(".ring").outerHTML = ring(n, main.length);
@@ -255,7 +285,7 @@ async function toggle(id) {
 }
 
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-toggle],[data-url],[data-subj],[data-lesson],[data-fold],[data-info]");
+  const t = e.target.closest("[data-toggle],[data-url],[data-subj],[data-lesson],[data-fold],[data-sfold],[data-info]");
   if (!t) return;
   if (t.dataset.info) {
     const box = (t.closest(".item") || t.closest(".group")).querySelector(":scope > .orig");
@@ -268,6 +298,12 @@ document.addEventListener("click", e => {
   if (t.dataset.url) return openLink(t.dataset.url);
   if (t.dataset.subj) { subj = t.dataset.subj; lessonId = null; return render(); }
   if (t.dataset.lesson) { lessonId = t.dataset.lesson; render().then(() => window.scrollTo(0, 0)); return; }
+  if (t.dataset.sfold) {
+    folds[foldKey({ title: "§" + t.dataset.sfold })] = t.closest(".section").classList.toggle("closed");
+    try { localStorage.setItem("dz_fold", JSON.stringify(folds)); } catch (e) {}
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    return;
+  }
   if (t.dataset.fold) {
     const el = t.closest(".group"), s = data.subjects.find(x => x.id === subj);
     const g = s.lessons.find(l => l.id === lessonId).groups[+t.dataset.fold];
