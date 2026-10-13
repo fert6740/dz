@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Пульт учёбы</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>:root{box-sizing:border-box}body{margin:0;padding:0}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: phones get one column; from 900px a two-column desk. Views: this week / last week / history. */
+:root{
+  --bg:#EEF2F7; --surface:#FFFFFF; --surface-2:#F5F8FB; --ink:#152033; --muted:#5B6779; --faint:#8C97A8; --line:#DCE3EC;
+  --fr:#2D5BD8; --fr-soft:#E3EAFC; --math:#0F8A6E; --math-soft:#DDF3EC; --en:#B8720C; --en-soft:#FBEED7;
+  --good:#2C8A4A; --good-soft:#E2F3E7; --warn:#B4541E; --warn-soft:#FBE9DE; --danger:#B83A32; --danger-soft:#F9E2E0;
+  --shadow:0 1px 2px rgba(21,32,51,.06),0 8px 24px rgba(21,32,51,.06);
+  --f-display:"Unbounded","Onest",system-ui,sans-serif; --f-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:16px; --r-sm:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E131A; --surface:#161D27; --surface-2:#1C2531; --ink:#E6ECF4; --muted:#9AA6B6; --faint:#6D7A8C; --line:#28323F;
+  --fr:#86A6FF; --fr-soft:#1E2A4A; --math:#4CCBA8; --math-soft:#173A33; --en:#F0B356; --en-soft:#3A2C14;
+  --good:#5CC27D; --good-soft:#18331F; --warn:#F09A62; --warn-soft:#3A2416; --danger:#F07C72; --danger-soft:#3B1C1A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E131A; --surface:#161D27; --surface-2:#1C2531; --ink:#E6ECF4; --muted:#9AA6B6; --faint:#6D7A8C; --line:#28323F;
+  --fr:#86A6FF; --fr-soft:#1E2A4A; --math:#4CCBA8; --math-soft:#173A33; --en:#F0B356; --en-soft:#3A2C14;
+  --good:#5CC27D; --good-soft:#18331F; --warn:#F09A62; --warn-soft:#3A2416; --danger:#F07C72; --danger-soft:#3B1C1A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1140px;margin:0 auto;padding-inline:16px;padding-block:18px 96px}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--fr);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;min-width:0}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:-.01em;margin:0}
+.sync{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.dot.ok{background:var(--good)} .dot.err{background:var(--danger)} .dot.load{background:var(--en);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px}
+
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px;overflow-x:auto}
+.tab{flex:1 0 auto;border:0;background:transparent;border-radius:9px;padding:8px 14px;font-weight:600;font-size:14px;color:var(--muted);white-space:nowrap}
+.tab.on{background:var(--ink);color:var(--surface)}
+.tab small{font-family:var(--f-mono);font-weight:500;font-size:11px;opacity:.75;margin-left:6px}
+
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);align-items:start}}
+.col{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card h2 .aside{text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)}
+
+/* Timer */
+.now-label{font-size:13px;color:var(--muted)}
+.now-act{font-family:var(--f-display);font-weight:700;font-size:20px;margin-top:2px}
+.clock{font-family:var(--f-mono);font-weight:700;font-size:clamp(40px,9vw,58px);letter-spacing:-.02em;line-height:1;margin:14px 0 4px}
+.clock.idle{color:var(--faint)}
+.since{font-size:13px;color:var(--muted);min-height:19px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:var(--r-sm);padding:10px 16px;font-weight:600}
+.btn:hover{border-color:var(--faint)}
+.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger)}
+.acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;margin-top:18px}
+.act{position:relative;text-align:left;border:1px solid var(--line);background:var(--surface-2);border-radius:12px;padding:11px 12px 10px;min-height:64px;display:flex;flex-direction:column;justify-content:space-between;gap:4px;transition:transform .08s ease,border-color .15s}
+.act:hover{border-color:var(--faint)}
+.act:active{transform:scale(.98)}
+.act .n{font-weight:600;font-size:14px;line-height:1.2}
+.act .s{font-size:12px;color:var(--muted)}
+.act::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
+.act.on{background:var(--cs);border-color:var(--c)}
+.act.on .s{color:var(--c);font-weight:600}
+.k-fr{--c:var(--fr);--cs:var(--fr-soft)} .k-math{--c:var(--math);--cs:var(--math-soft)} .k-en{--c:var(--en);--cs:var(--en-soft)}
+.subhint{font-size:12px;color:var(--faint);margin-top:10px}
+.confirm{margin-top:14px;padding:12px;border-radius:12px;background:var(--warn-soft);display:grid;gap:10px}
+.confirm label{font-size:14px}
+.confirm input{width:96px;padding:7px 9px;border-radius:8px;border:1px solid var(--line);background:var(--surface)}
+details.manual{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+details.manual summary{cursor:pointer;font-size:14px;color:var(--muted);font-weight:500}
+.mform{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px;align-items:end}
+.mform label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.mform select,.mform input{padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);min-width:0;width:100%}
+.ferr{font-size:13px;color:var(--danger);grid-column:1/-1}
+.queue{margin-top:14px;display:grid;gap:8px}
+.qi{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;padding:10px 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font-size:13px}
+.qi.err{background:var(--danger-soft);border-color:transparent}
+.qi .t{min-width:0;flex:1 1 200px} .qi .m{color:var(--muted);margin-top:2px}
+.qi .b{display:flex;gap:6px}
+.qi button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600}
+.log{margin-top:12px;display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.log b{color:var(--ink);font-weight:600}
+
+/* Today */
+.today-grid{display:grid;gap:10px}
+.trow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+.trow .nm{font-weight:600;display:flex;align-items:center;gap:8px}
+.trow .nm i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.trow .vv{font-family:var(--f-mono);font-size:13px;color:var(--muted);text-align:right}
+.trow .vv b{color:var(--ink)}
+.trow .bar{grid-column:1/-1}
+.today-sum{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;margin-bottom:14px}
+.today-sum .big{font-family:var(--f-display);font-weight:700;font-size:22px}
+.today-sum .small{color:var(--muted);font-size:14px}
+
+/* Subjects */
+.subj{display:grid;gap:16px}
+.srow{display:grid;gap:7px}
+.stop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.sname{font-weight:600;display:flex;align-items:center;gap:8px}
+.sname i{width:10px;height:10px;border-radius:3px;background:var(--c);display:inline-block}
+.sval{font-family:var(--f-mono);font-size:14px}
+.sval b{font-size:17px}
+.bar{height:10px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;position:relative}
+.bar > span{position:absolute;inset:0 auto 0 0;background:var(--c,var(--ink));border-radius:99px}
+.bar > em{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.55}
+.smeta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.chip{font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.chip.good{background:var(--good-soft);color:var(--good)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.bad{background:var(--danger-soft);color:var(--danger)} .chip.neu{background:var(--surface-2);color:var(--muted)}
+.total{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.ring{--p:0;width:84px;height:84px;border-radius:50%;background:conic-gradient(var(--ink) calc(var(--p)*1%),var(--surface-2) 0);display:grid;place-items:center;flex:none}
+.ring > div{width:66px;height:66px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:16px}
+.total .big{font-family:var(--f-display);font-weight:700;font-size:26px;line-height:1.1}
+.total .small{color:var(--muted);font-size:14px}
+
+/* Days */
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;align-items:end}
+.day{display:grid;gap:5px;justify-items:center;min-width:0}
+.stack{width:100%;max-width:44px;height:130px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line);display:flex;flex-direction:column-reverse;overflow:hidden;position:relative}
+.stack span{display:block;width:100%}
+.stack .tgt{position:absolute;left:0;right:0;border-top:2px dashed var(--faint)}
+.day .h{font-family:var(--f-mono);font-size:12px}
+.day .d{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:0 6px}
+.day.today .d{color:var(--surface);background:var(--ink);border-radius:6px}
+.day.future .stack span{opacity:.35}
+.day .df{font-family:var(--f-mono);font-size:11px;font-weight:700;min-height:16px}
+.day .df.bad{color:var(--danger)} .day .df.ok{color:var(--good)}
+.day.sunk .stack{border-color:var(--danger);box-shadow:inset 0 0 0 1px var(--danger)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:12px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:var(--c)}
+
+/* Blocks */
+.blocks{display:grid;gap:12px}
+.blk{display:grid;gap:5px}
+.blk .row1{display:flex;justify-content:space-between;gap:10px;font-size:14px;flex-wrap:wrap}
+.blk .row1 .v{font-family:var(--f-mono);font-size:13px;color:var(--muted);white-space:nowrap}
+.blk .row1 .v b{color:var(--ink)}
+.blk .bar{height:8px}
+.blk.done .row1 .v{color:var(--good)}
+.blk .tdy{font-size:12px;color:var(--fr);font-weight:600}
+.blk .prev{font-size:12px;color:var(--faint)}
+
+/* Insights */
+.ins{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.ins li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;font-size:14px}
+.ins li::before{content:"";width:8px;height:8px;border-radius:50%;margin-top:7px;background:var(--dc,var(--faint))}
+.ins li.bad{--dc:var(--danger)} .ins li.warn{--dc:var(--warn)} .ins li.good{--dc:var(--good)}
+
+/* History */
+.hist{display:grid;gap:10px}
+.hrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);text-align:left;width:100%}
+.hrow:hover{border-color:var(--faint)}
+.hrow .w{font-weight:600}
+.hrow .p{font-family:var(--f-mono);font-size:13px;color:var(--muted);text-align:right}
+.hrow .bar{grid-column:1/-1;height:8px}
+.hrow .sub{grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.trend{display:flex;align-items:flex-end;gap:8px;height:120px;margin-bottom:12px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.trend .tc{flex:1 1 0;min-width:0;display:grid;justify-items:center;gap:4px}
+.trend .tb{width:100%;max-width:38px;border-radius:7px 7px 3px 3px;background:var(--ink);opacity:.85}
+.trend .tl{font-size:11px;color:var(--muted);font-family:var(--f-mono)}
+
+.notice{border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:16px;background:var(--warn-soft)}
+.notice.err{background:var(--danger-soft)}
+.notice button{margin-top:8px}
+.skeleton{color:var(--faint);font-size:14px;padding:8px 0}
+.empty{color:var(--muted);font-size:14px;line-height:1.5}
+
+.dock{position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--surface);display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:10}
+.dock .a{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dock .c{font-family:var(--f-mono);font-weight:700;font-size:20px}
+.dock button{border:0;border-radius:10px;padding:9px 14px;font-weight:700;background:var(--surface);color:var(--ink)}
+@media (min-width:900px){.dock{display:none!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.apps{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:14px}
+.apps button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px 14px;font-weight:600;font-size:14px;color:var(--muted)}
+.apps button.on{background:var(--fr);color:var(--surface)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="apps" aria-label="Разделы"><button type="button" id="goDz">ДЗ</button><button type="button" class="on" aria-current="page">Пульт</button></nav>
+  <header class="top">
+    <div class="brand"><h1>Пульт учёбы</h1></div>
+    <div class="sync"><span class="dot load" id="syncDot"></span><span id="syncText">Подключаюсь к таблице</span><button class="iconbtn" id="refreshBtn" type="button">Обновить</button></div>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="Недели"></nav>
+  <div id="notice"></div>
+  <div id="view"></div>
+</div>
+<div class="dock" id="dock" hidden><div style="min-width:0"><div class="a" id="dockAct"></div></div><div class="c num" id="dockClock">0:00:00</div><button type="button" id="dockStop">Стоп</button></div>
+
+<script>
+(() => {
+const tg = window.Telegram && window.Telegram.WebApp;
+const inTg = !!(tg && tg.initData);
+const cloud = inTg && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9") ? tg.CloudStorage : null;
+const qs = new URLSearchParams(location.search);
+const GIST = qs.get("g") || localStorage.getItem("dz_gist") || "";
+if (qs.get("g")) { try { localStorage.setItem("dz_gist", GIST); } catch(e){} }
+const CLOUD_KEY = "pult";
+const DAYS = ["пн","вт","ср","чт","пт","сб","вс"];
+const DAYS_FULL = ["понедельник","вторник","среда","четверг","пятница","суббота","воскресенье"];
+const DEFAULT_BLOCKS = ["Аудирование","Лексика","Чтение","Грамматика","Shadowing","Письмо","Прочее"];
+// Базовое расписание (ч/день): по нему считаются «график к сегодня» и просевшие дни.
+const SCHED = { fr:[4.5,4,3,4,4.5,2,3], math:[1.5,0,3,0,1.5,0,3], en:[0,2,0,2,0,0,0] };
+const DAY_PLAN = DAYS.map((_,i) => SCHED.fr[i] + SCHED.math[i] + SCHED.en[i]);
+const SUBJ = [{k:"fr",name:"Французский",col:1},{k:"math",name:"Математика",col:2},{k:"en",name:"Английский",col:3}];
+const LONG_MIN = 180;
+
+const st = { values:null, sheetErr:null, updatedAt:null, loading:true, view:"cur", hist:null, histErr:null, histPick:null,
+  timer:{ act:null, start:null }, pending:[], log:[], busy:false, confirm:null, discardAsk:false, formErr:"" };
+let API = "", rev = 0, saving = 0;   // API — адрес скрипта таблицы (приходит вместе с данными ДЗ)
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = s => { const n = parseFloat(String(s ?? "").replace(/\s/g,"").replace(",", ".")); return isFinite(n) ? n : 0; };
+const r2 = x => Math.round(x*100)/100;
+const fmtNum = x => String(Math.round(x*10)/10).replace(".", ",");
+// Часы → «2 ч 15 мин»
+const fmtHM = x => { const neg = x < 0; let m = Math.round(Math.abs(x)*60); const h = Math.floor(m/60); m %= 60;
+  const s = h ? (m ? `${h} ч ${m} мин` : `${h} ч`) : `${m} мин`; return (neg ? "−" : "") + s; };
+const fmtClock = ms => { const s = Math.max(0, Math.floor(ms/1000)); return Math.floor(s/3600) + ":" + String(Math.floor(s%3600/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0"); };
+const fmtMins = m => fmtHM(m/60);
+const hhmm = ts => new Intl.DateTimeFormat("ru-RU",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Moscow"}).format(ts);
+
+function studyDay(ts){
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Moscow",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(ts - 4*3600e3)).map(x => [x.type, x.value]));
+  const d = new Date(Date.UTC(+p.year, +p.month-1, +p.day));
+  const dow = (d.getUTCDay() + 6) % 7;
+  const th = new Date(d); th.setUTCDate(d.getUTCDate() - dow + 3);
+  const y1 = new Date(Date.UTC(th.getUTCFullYear(),0,4));
+  return { day: dow, week: 1 + Math.round(((th - y1)/864e5 - 3 + ((y1.getUTCDay()+6)%7))/7) };
+}
+
+/* ---------- parsing a week block (same layout on both sheets) ---------- */
+function parseWeek(v, r0){ // r0 = 1-based row of the header ("W41 (…)")
+  const c = (r, col) => v?.[r0 - 1 + r]?.[col];
+  const label = String(c(0,0) ?? "").trim();
+  if (!/^W\d+/.test(label)) return null;
+  const days = DAYS.map((_,i) => ({ fr:num(c(1+i,1)), math:num(c(1+i,2)), en:num(c(1+i,3)) }));
+  const done = { fr:num(c(8,1)), math:num(c(8,2)), en:num(c(8,3)) };
+  const plan = { fr:num(c(9,1)), math:num(c(9,2)), en:num(c(9,3)) };
+  const blocks = [];
+  for (let i = 1; i <= 8; i++){
+    const name = String(c(i,11) ?? "").trim(); if (!name || name === "Итого") continue;
+    blocks.push({ name, perDay: DAYS.map((_,d) => num(c(i,12+d))), done:num(c(i,19)), norm:num(c(i,20)) });
+  }
+  const m = /^W(\d+)\s*\(([^)]*)\)/.exec(label);
+  return { label, week: m ? +m[1] : null, dates: m ? m[2] : "", days, done, plan, blocks };
+}
+const curWeek = () => st.values ? parseWeek(st.values, 1) : null;
+const prevWeek = () => st.values ? parseWeek(st.values, 13) : null;
+const base = () => ({ fr:num(st.values?.[2]?.[6]) || 25, math:num(st.values?.[2]?.[7]) || 9, en:num(st.values?.[2]?.[8]) || 4 });
+function histWeeks(){
+  const v = st.hist || [], out = [];
+  for (let r = 1; r <= v.length; r++){ const w = parseWeek(v, r); if (w && String(v[r-1]?.[1]).trim() === "Французский") out.push(w); }
+  return out;
+}
+
+function blocksList(){ const w = curWeek(); const b = w ? w.blocks.map(x => x.name).filter(n => n !== "Репетитор") : []; return b.length ? b : DEFAULT_BLOCKS; }
+function acts(){ return [...blocksList().map(b => ({ key:"fr:"+b, kind:"fr", blk:b, label:b })), { key:"math", kind:"math", label:"Математика" }, { key:"en", kind:"en", label:"Английский" }]; }
+const actByKey = k => acts().find(a => a.key === k) || (k?.startsWith("fr:") ? { key:k, kind:"fr", blk:k.slice(3), label:k.slice(3) } : k === "math" ? { key:k, kind:"math", label:"Математика" } : k === "en" ? { key:k, kind:"en", label:"Английский" } : null);
+const kindVar = k => k === "fr" ? "fr" : k;
+
+/* ---------- state storage ---------- */
+function snapshotData(){ return { rev, act: st.timer.act, start: st.timer.start, pending: st.pending }; }
+function saveLocal(){ try { localStorage.setItem("pult-state", JSON.stringify(snapshotData())); } catch(e){} }
+function loadLocal(){ try { const d = JSON.parse(localStorage.getItem("pult-state") || "null"); if (d) applyData(d); } catch(e){} try { st.view = localStorage.getItem("pult-view") || "cur"; } catch(e){}
+  try { const c = JSON.parse(localStorage.getItem("pult-values") || "null"); if (c && Array.isArray(c.v)){ st.values = c.v; st.updatedAt = c.at; } } catch(e){} }
+function applyData(d){ rev = +d.rev || 0; st.timer = { act: d.act ?? null, start: d.start ?? null }; st.pending = Array.isArray(d.pending) ? d.pending.map(x => ({...x})) : []; }
+function persist(){
+  rev = Math.max(Date.now(), rev + 1);
+  saveLocal();
+  if (!cloud) return;
+  saving++;
+  cloud.setItem(CLOUD_KEY, JSON.stringify(snapshotData()), () => { saving--; });
+}
+// Подтянуть состояние с другого устройства: берём облачное, только если оно новее здешнего.
+function pullCloud(){
+  if (!cloud || saving) return;
+  cloud.getItem(CLOUD_KEY, (err, val) => {
+    if (err || !val || saving) return;
+    let d; try { d = JSON.parse(val); } catch(e){ return; }
+    if (!d || !((+d.rev || 0) > rev)) return;
+    applyData(d); saveLocal(); render(); processQueue();
+  });
+}
+
+/* ---------- timer ---------- */
+function newEntry(act, mins, day, week, src){
+  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2,6), kind: act.kind, blk: act.blk || null, label: act.label, mins: Math.round(mins), day, week, src, at: Date.now() };
+}
+let flashMsg = "", flashT = 0;
+function flash(m){ flashMsg = m; clearTimeout(flashT); flashT = setTimeout(() => { flashMsg = ""; render(); }, 4000); }
+function finishRunning(endTs, minsOverride){
+  const t = st.timer; if (!t.act || !t.start) return null;
+  const act = actByKey(t.act); const mins = Math.round(minsOverride ?? (endTs - t.start)/60000);
+  const sd = studyDay(t.start);
+  st.timer = { act:null, start:null };
+  if (!act) return null;
+  if (mins < 1){ flash("Меньше минуты, не записано"); return null; }
+  const e = newEntry(act, mins, sd.day, sd.week, "timer"); st.pending.push(e); return e;
+}
+function pressAct(key){
+  st.discardAsk = false; if (st.confirm || st.timer.act === key) return;
+  const now = Date.now();
+  if (st.timer.act) finishRunning(now);
+  st.timer = { act:key, start:now };
+  persist(); render(); processQueue();
+}
+function pressStop(){
+  if (!st.timer.act) return;
+  const mins = (Date.now() - st.timer.start)/60000;
+  if (mins > LONG_MIN){ st.confirm = { mins: Math.round(mins) }; render(); return; }
+  finishRunning(Date.now()); persist(); render(); processQueue();
+}
+function confirmLong(save){
+  if (save){
+    const v = Math.round(parseFloat(String($("confirmMins")?.value ?? "").replace(",", ".")));
+    if (!(v >= 1 && v <= 900)){ $("confirmErr").textContent = "Укажи от 1 до 900 минут"; return; }
+    finishRunning(Date.now(), v);
+  }
+  st.confirm = null; persist(); render(); if (save) processQueue();
+}
+function discard(){ st.timer = { act:null, start:null }; st.discardAsk = false; persist(); render(); }
+function addManual(){
+  const key = $("mAct").value, day = +$("mDay").value, mins = Math.round(parseFloat(String($("mMin").value).replace(",", ".")));
+  if (!mins || Math.abs(mins) > 900){ st.formErr = "Укажи минуты: от 1 до 900, или с минусом, чтобы убрать лишнее"; render(); return; }
+  const wk = curWeek()?.week ?? studyDay(Date.now()).week;
+  st.pending.push(newEntry(actByKey(key), mins, day, wk, "manual"));
+  st.formErr = ""; $("mMin").value = "";
+  persist(); render(); processQueue();
+}
+
+/* ---------- writing ---------- */
+function errText(e){
+  const c = e?.code;
+  if (c === "no_api") return "Адрес таблицы не получен. Открой вкладку «ДЗ» и вернись сюда.";
+  if (c === "forbidden") return "Таблица не приняла ключ доступа.";
+  if (c === "network") return "Нет связи с таблицей.";
+  return e?.message || "Не получилось связаться с таблицей.";
+}
+async function call(params, post){
+  if (!API) throw { code:"no_api" };
+  let r;
+  try {
+    if (post) r = await fetch(API, { method:"POST", body: JSON.stringify({ k: new URL(API).searchParams.get("k"), ...params }) });
+    else r = await fetch(API + "&" + new URLSearchParams({ ...params, t: Date.now() }), { cache:"no-store" });
+  } catch(e){ throw { code:"network" }; }
+  let j; try { j = await r.json(); } catch(e){ throw { code:"network" }; }
+  if (!j || !j.ok) throw { code: j?.code || "error", message: j?.message };
+  return j;
+}
+function takeValues(v){
+  if (!Array.isArray(v)) return;
+  st.values = v; st.sheetErr = null; st.updatedAt = Date.now();
+  try { localStorage.setItem("pult-values", JSON.stringify({ v, at: st.updatedAt })); } catch(e){}   // чтобы при открытии не ждать таблицу
+}
+// Скрипт таблицы сам находит клетку и прибавляет минуты; повтор с тем же id второй раз не запишется.
+async function writeEntry(e){
+  const j = await call({ a:"add", id:e.id, week:e.week, kind:e.kind, blk:e.blk, day:e.day, mins:e.mins }, true);
+  takeValues(j.values);
+  return { ref: j.ref };
+}
+async function processQueue(){
+  if (st.busy || !API || !st.pending.some(x => !x.err)) return;
+  st.busy = true;
+  try {
+    for (;;){
+      const e = st.pending.find(x => !x.err); if (!e) break;
+      try {
+        const r = await writeEntry(e);
+        st.pending = st.pending.filter(x => x.id !== e.id);
+        st.log.unshift({ text:`${e.label} ${e.mins > 0 ? "+" : "−"}${fmtMins(Math.abs(e.mins))}`, day: DAYS[e.day], ref: r.ref });
+        st.log = st.log.slice(0, 5);
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+        persist(); render();
+      } catch(err){
+        // Нет связи — запись остаётся в очереди и уйдёт при следующем обновлении; отказ таблицы — показываем.
+        if (err?.code === "network" || err?.code === "no_api"){ st.sheetErr = err; break; }
+        const p = st.pending.find(x => x.id === e.id);
+        if (p){ p.err = errText(err); p.code = err?.code || "error"; }
+        persist(); render(); break;
+      }
+    }
+  } finally { st.busy = false; }
+  render();
+}
+function retryEntry(id){ const p = st.pending.find(x => x.id === id); if (p){ delete p.err; delete p.code; } persist(); render(); processQueue(); }
+function dropEntry(id){ st.pending = st.pending.filter(x => x.id !== id); persist(); render(); }
+
+/* ---------- reading ---------- */
+let refreshing = false;
+async function refresh(){
+  if (refreshing || !API) return; refreshing = true;
+  try { takeValues((await call({ a:"state" })).values); }
+  catch(e){ st.sheetErr = e; }
+  refreshing = false; st.loading = false;
+  render();
+  if (!st.sheetErr) processQueue();
+}
+let histLoading = false;
+async function loadHistory(){
+  if (!API || histLoading) return; histLoading = true;
+  try { st.hist = (await call({ a:"hist" })).values || []; st.histErr = null; }
+  catch(e){ st.histErr = e; }
+  histLoading = false; render();
+}
+async function findApi(force){
+  let d = null;
+  if (!force){ try { d = JSON.parse(localStorage.getItem("dz_data") || "null"); } catch(e){} }
+  if (!(d && d.pult) && GIST){
+    try {
+      const r = await fetch("https://gist.githubusercontent.com/raw/" + GIST + "/data.json?t=" + Date.now());
+      if (r.ok) d = await r.json();
+    } catch(e){}
+  }
+  API = (d && d.pult) || "";
+}
+
+/* ---------- analytics ---------- */
+function todayIdxFor(w){ // index of «сегодня» inside this week, 7 = week is over
+  if (!w) return 7; const sd = studyDay(Date.now());
+  return w.week === sd.week ? sd.day : 7;
+}
+function weekStats(w, isCurrent){
+  const t = isCurrent ? todayIdxFor(w) : 7;
+  const rep = w.blocks.find(b => b.name === "Репетитор");
+  const futureRep = rep ? rep.perDay.reduce((s,x,i) => s + (i > t ? x : 0), 0) : 0;
+  const done = { ...w.done, fr: w.done.fr - futureRep };
+  const b = base();
+  const subj = SUBJ.map(s => {
+    const carry = w.plan[s.k] - b[s.k];
+    const exp = (t >= 7 ? b[s.k] : SCHED[s.k].slice(0, t + 1).reduce((a,c) => a + c, 0)) + carry;
+    return { ...s, done: done[s.k], plan: w.plan[s.k], exp, gap: exp - done[s.k] };
+  });
+  const days = w.days.map((d,i) => {
+    let fr = d.fr; if (i > t && rep) fr -= rep.perDay[i];
+    const tot = fr + d.math + d.en;
+    return { ...d, fr, tot, plan: DAY_PLAN[i], diff: tot - DAY_PLAN[i], past: i < t, today: i === t, future: i > t };
+  });
+  const sum = o => o.fr + o.math + o.en;
+  return { t, futureRep, subj, days, done: sum(done), plan: sum(w.plan) };
+}
+
+/* ---------- render ---------- */
+function renderTop(){
+  const v = st.values, dot = $("syncDot"), txt = $("syncText");
+  if (st.sheetErr && !v){ dot.className = "dot err"; txt.textContent = "Нет связи с таблицей"; }
+  else if (st.sheetErr){ dot.className = "dot err"; txt.textContent = "Показаны прошлые данные"; }
+  else if (!v){ dot.className = "dot load"; txt.textContent = "Подключаюсь к таблице"; }
+  else { dot.className = "dot ok"; txt.textContent = "Таблица · " + hhmm(st.updatedAt || Date.now()); }
+  const cw = curWeek(), pw = prevWeek();
+  const tabs = [["cur","Эта неделя", cw?.week ? "W"+cw.week : ""],["prev","Прошлая", pw?.week ? "W"+pw.week : ""],["hist","История",""]];
+  $("tabs").innerHTML = tabs.map(([k,l,s]) => `<button type="button" class="tab ${st.view === k ? "on" : ""}" data-view="${k}" aria-pressed="${st.view === k}">${l}${s ? `<small>${s}</small>` : ""}</button>`).join("");
+  let n = "";
+  if (!API && !st.loading) n = `<div class="notice err">${esc(errText({ code:"no_api" }))} Таймер работает, записи подождут в очереди.</div>`;
+  else if (st.sheetErr) n = `<div class="notice ${v ? "" : "err"}">${esc(errText(st.sheetErr))}${st.pending.length ? " Записи подождут в очереди." : ""}</div>`;
+  const sd = studyDay(Date.now());
+  if (cw && cw.week && cw.week !== sd.week) n += `<div class="notice">В таблице неделя W${cw.week}, а сейчас W${sd.week}: смена недели ещё не прошла. Новые записи подождут в очереди.</div>`;
+  $("notice").innerHTML = n;
+}
+
+function timerCard(){
+  const t = st.timer, act = t.act ? actByKey(t.act) : null, running = !!(act && t.start);
+  const w = curWeek(), ti = studyDay(Date.now()).day;
+  let h = `<section class="card" aria-label="Таймер"><h2>Таймер${running ? "" : `<span class="aside">нажми, чем занимаешься</span>`}</h2>
+  <div class="now-label">${running ? "Сейчас" : "Ничего не идёт"}</div>
+  <div class="now-act" style="color:${running ? `var(--${kindVar(act.kind)})` : "var(--faint)"}">${running ? esc(act.label) : "Выбери занятие"}</div>
+  <div class="clock num ${running ? "" : "idle"}" data-clock>${running ? fmtClock(Date.now() - t.start) : "0:00:00"}</div>
+  <div class="since">${running ? `с ${hhmm(t.start)} · запишется в ${DAYS[studyDay(t.start).day]}, в целых минутах` : (flashMsg ? esc(flashMsg) : "&nbsp;")}</div>`;
+  if (st.confirm){
+    h += `<div class="confirm"><label for="confirmMins">Таймер шёл ${fmtMins(st.confirm.mins)}. Возможно, ты забыл его остановить. Сколько минут записать?</label>
+    <div class="actions" style="margin:0"><input id="confirmMins" type="number" inputmode="numeric" min="1" max="900" value="${st.confirm.mins}"><button class="btn primary" type="button" data-do="confirm-save">Записать</button><button class="btn ghost" type="button" data-do="confirm-cancel">Назад</button></div><div class="ferr" id="confirmErr"></div></div>`;
+  } else if (running){
+    h += `<div class="actions"><button class="btn primary" type="button" data-do="stop">Стоп и записать</button>
+    ${st.discardAsk ? `<button class="btn danger" type="button" data-do="discard-yes">Да, сбросить без записи</button><button class="btn ghost" type="button" data-do="discard-no">Не надо</button>` : `<button class="btn ghost" type="button" data-do="discard">Сбросить</button>`}</div>`;
+  }
+  h += `<div class="acts">` + acts().map(a => {
+    const on = t.act === a.key; let sub = "";
+    if (on) sub = "идёт";
+    else if (w){
+      if (a.kind === "fr"){ const b = w.blocks.find(x => x.name === a.blk); if (b) sub = `сегодня ${fmtHM(b.perDay[ti])} · ост. ${fmtHM(Math.max(0, b.norm - b.done))}`; }
+      else sub = `сегодня ${fmtHM(w.days[ti][a.kind])}`;
+    }
+    return `<button type="button" class="act k-${a.kind} ${on ? "on" : ""}" data-act="${esc(a.key)}" aria-pressed="${on}"><span class="n">${esc(a.label)}</span><span class="s">${esc(sub) || "&nbsp;"}</span></button>`;
+  }).join("") + `</div><div class="subhint">Переключился на другое занятие? Просто нажми его: прошлое запишется само.</div>`;
+  if (st.pending.length){
+    h += `<div class="queue">` + st.pending.map(e => `<div class="qi ${e.err ? "err" : ""}"><div class="t"><b>${esc(e.label)}</b> ${e.mins > 0 ? "+" : "−"}${fmtMins(Math.abs(e.mins))} · ${DAYS[e.day]}
+      <div class="m">${e.err ? esc(e.err) : (st.busy ? "Записываю в таблицу…" : "Ждёт записи")}</div></div>
+      ${e.err ? `<div class="b"><button type="button" data-retry="${e.id}">Записать снова</button><button type="button" data-drop="${e.id}">Убрать</button></div>` : ""}</div>`).join("") + `</div>`;
+  }
+  if (st.log.length) h += `<div class="log">` + st.log.map(l => `<div>Записано: <b>${esc(l.text)}</b> · ${l.day} · клетка ${esc(l.ref)}</div>`).join("") + `</div>`;
+  h += `<details class="manual" id="manual" ${manualOpen ? "open" : ""}><summary>Добавить или убрать время вручную</summary>
+  <div class="mform"><label>Занятие<select id="mAct">${acts().map(a => `<option value="${esc(a.key)}">${esc(a.label)}</option>`).join("")}</select></label>
+  <label>День<select id="mDay">${DAYS.map((d,i) => `<option value="${i}" ${i === ti ? "selected" : ""}>${d}</option>`).join("")}</select></label>
+  <label>Минуты (с минусом — убрать)<input id="mMin" type="number" inputmode="numeric" min="-900" max="900" placeholder="45"></label>
+  <button class="btn primary" type="button" data-do="manual">Записать</button>${st.formErr ? `<div class="ferr">${esc(st.formErr)}</div>` : ""}</div></details></section>`;
+  return h;
+}
+
+function todayCard(w, s){
+  if (s.t > 6 || s.t < 0) return "";
+  const i = s.t, d = s.days[i];
+  const rows = SUBJ.map(x => ({ ...x, plan: SCHED[x.k][i], done: d[x.k] })).filter(x => x.plan || x.done);
+  const left = rows.reduce((a,x) => a + Math.max(0, x.plan - x.done), 0);
+  const repToday = w.blocks.find(b => b.name === "Репетитор")?.perDay[i] || 0;
+  let h = `<section class="card" aria-label="Сегодня"><h2>Сегодня, ${DAYS_FULL[i]}<span class="aside">по расписанию ${fmtHM(DAY_PLAN[i])}</span></h2>
+    <div class="today-sum"><div class="big num">${fmtHM(d.tot)}</div><div class="small">${left > 0.01 ? `осталось ${fmtHM(left)}` : "план дня выполнен"}</div></div><div class="today-grid">`;
+  if (!rows.length) h += `<div class="empty">По расписанию сегодня ничего нет.</div>`;
+  for (const x of rows){
+    const w2 = x.plan ? Math.min(100, x.done/x.plan*100) : 100;
+    h += `<div class="trow k-${x.k}"><span class="nm"><i></i>${x.name}</span><span class="vv"><b>${fmtHM(x.done)}</b> из ${fmtHM(x.plan)}</span><div class="bar"><span style="width:${w2}%"></span></div></div>`;
+  }
+  h += `</div>${repToday ? `<div class="subhint">Во французский входит репетитор (${fmtHM(repToday)}).</div>` : ""}</section>`;
+  return h;
+}
+
+function summaryCard(w, s, isCurrent, cmp){
+  const pct = s.plan ? Math.min(100, Math.round(s.done/s.plan*100)) : 0;
+  let h = `<section class="card" aria-label="Итоги недели"><h2>${isCurrent ? "Неделя" : "Итог недели"} · ${esc(w.dates)}<span class="aside">${pct}% плана</span></h2>
+    <div class="total"><div class="ring" style="--p:${pct}"><div class="num">${pct}%</div></div>
+    <div><div class="big num">${fmtHM(s.done)}</div><div class="small">из ${fmtHM(s.plan)} · ${s.plan - s.done > 0.01 ? (isCurrent ? "осталось " : "не хватило ") + fmtHM(s.plan - s.done) : "план выполнен"}</div>
+    ${cmp ? `<div class="small" style="margin-top:2px">${cmp}</div>` : ""}</div></div><div class="subj">`;
+  for (const x of s.subj){
+    const bw = x.plan ? Math.min(100, x.done/x.plan*100) : 0, mk = x.plan ? Math.min(100, x.exp/x.plan*100) : 0;
+    let chip;
+    if (!isCurrent || s.t >= 7) chip = x.gap <= 0.01 ? `<span class="chip good">выполнено</span>` : `<span class="chip bad">не хватило ${fmtHM(x.gap)}</span>`;
+    else chip = x.gap <= 0.01 ? `<span class="chip good">в графике${x.gap < -0.25 ? ` (+${fmtHM(-x.gap)})` : ""}</span>` : `<span class="chip warn">до графика ${fmtHM(x.gap)}</span>`;
+    const rem = Math.max(0, x.plan - x.done - (x.k === "fr" ? s.futureRep : 0));
+    h += `<div class="srow k-${x.k}"><div class="stop"><span class="sname"><i></i>${x.name}</span><span class="sval num"><b>${fmtNum(x.done)}</b> / ${fmtNum(x.plan)} ч</span></div>
+      <div class="bar"><span style="width:${bw}%"></span>${isCurrent && s.t < 7 ? `<em style="left:calc(${mk}% - 1px)"></em>` : ""}</div>
+      <div class="smeta"><span>${isCurrent && s.t < 7 ? `осталось ${fmtHM(rem)}${x.k === "fr" && s.futureRep ? ` + репетитор ${fmtHM(s.futureRep)}` : ""}` : `сделано ${fmtHM(x.done)}`}</span>${chip}</div></div>`;
+  }
+  h += `</div>${isCurrent && s.t < 7 ? `<div class="subhint">Засечка на полосе: сколько должно быть по расписанию к концу сегодняшнего дня.</div>` : ""}</section>`;
+  return h;
+}
+
+function daysCard(s, isCurrent){
+  const max = Math.max(6.5, ...s.days.map(d => d.tot)), H = 130, px = x => (x/max*H).toFixed(1) + "px";
+  let h = `<section class="card" aria-label="По дням"><h2>По дням<span class="aside">пунктир: план дня по расписанию</span></h2><div class="days">`;
+  s.days.forEach((d,i) => {
+    const judged = !isCurrent || d.past;
+    const sunk = judged && d.diff < -0.25;
+    const df = judged ? (Math.abs(d.diff) < 0.25 ? `<span class="df ok">✓</span>` : `<span class="df ${d.diff < 0 ? "bad" : "ok"}">${d.diff < 0 ? "−" : "+"}${fmtNum(Math.abs(d.diff))}</span>`) : `<span class="df"></span>`;
+    h += `<div class="day ${isCurrent && d.today ? "today" : ""} ${isCurrent && d.future ? "future" : ""} ${sunk ? "sunk" : ""}">${df}<div class="h num">${d.tot ? fmtNum(d.tot) : "·"}</div>
+      <div class="stack" title="${DAYS[i]}: франц. ${fmtNum(d.fr)}, матем. ${fmtNum(d.math)}, англ. ${fmtNum(d.en)} · план ${fmtNum(d.plan)}">
+      <span style="height:${px(d.fr)};background:var(--fr)"></span><span style="height:${px(d.math)};background:var(--math)"></span><span style="height:${px(d.en)};background:var(--en)"></span>
+      <i class="tgt" style="bottom:${px(d.plan)}"></i></div><div class="d">${DAYS[i]}</div></div>`;
+  });
+  h += `</div><div class="legend"><span class="k-fr"><i></i>французский</span><span class="k-math"><i></i>математика</span><span class="k-en"><i></i>английский</span><span style="color:var(--danger)">красная рамка: день просел</span></div></section>`;
+  return h;
+}
+
+function blocksCard(w, s, isCurrent, prev){
+  let h = `<section class="card" aria-label="Французский по блокам"><h2>Французский по блокам<span class="aside">сделано / норма</span></h2><div class="blocks">`;
+  for (const b of w.blocks){
+    if (!b.norm && !b.done) continue;
+    const td = isCurrent && s.t <= 6 ? b.perDay[s.t] : 0;
+    const bw = b.norm ? Math.min(100, b.done/b.norm*100) : 100, ok = b.norm && b.done >= b.norm - 0.01;
+    const pb = prev?.blocks.find(x => x.name === b.name);
+    h += `<div class="blk k-fr ${ok ? "done" : ""}"><div class="row1"><span>${esc(b.name)}${td && b.name !== "Репетитор" ? ` <span class="tdy">· сегодня ${fmtHM(td)}</span>` : ""}</span>
+      <span class="v num"><b>${fmtNum(b.done)}</b> / ${fmtNum(b.norm)} ч${ok ? " ✓" : ""}</span></div><div class="bar"><span style="width:${bw}%"></span></div>
+      ${pb && isCurrent ? `<div class="prev">прошлая неделя: ${fmtNum(pb.done)} ч</div>` : ""}</div>`;
+  }
+  return h + `</div></section>`;
+}
+
+function insightsCard(w, s, isCurrent, prev){
+  const items = [];
+  const totGap = s.subj.reduce((a,x) => a + Math.max(0, x.gap), 0);
+  if (isCurrent && s.t < 7){
+    if (totGap > 0.25) items.push(["warn", `До графика не хватает ${fmtHM(totGap)}: ${s.subj.filter(x => x.gap > 0.25).map(x => `${x.name.toLowerCase()} ${fmtHM(x.gap)}`).join(", ")}.`]);
+    else items.push(["good", "Идёшь по графику или с запасом."]);
+    const daysLeft = 6 - s.t; const left = Math.max(0, s.plan - s.done - s.futureRep);
+    if (daysLeft > 0 && left > 0) items.push(["", `Чтобы закрыть неделю, нужно в среднем ${fmtHM(left / (daysLeft + 0.5))} в день (с учётом остатка сегодняшнего дня).`]);
+  } else {
+    items.push([totGap > 0.25 ? "bad" : "good", totGap > 0.25 ? `Неделя закрыта не полностью: не хватило ${fmtHM(totGap)}.` : "Неделя выполнена полностью."]);
+  }
+  const sunk = s.days.filter(d => (!isCurrent || d.past) && d.diff < -0.25);
+  if (sunk.length) items.push(["bad", `Просели: ${sunk.map(d => `${DAYS[s.days.indexOf(d)]} (${fmtHM(d.diff)})`).join(", ")}.`]);
+  const fb = w.blocks.filter(b => b.norm > 0 && b.name !== "Репетитор").map(b => ({ ...b, p: b.done / b.norm })).sort((a,b) => a.p - b.p);
+  if (fb.length && fb[0].p < 1) items.push([fb[0].p < .34 ? "warn" : "", `Во французском меньше всего: ${fb[0].name}, ${fmtHM(fb[0].done)} из ${fmtHM(fb[0].norm)}.`]);
+  const best = s.days.reduce((a,d,i) => d.tot > (a?.tot ?? 0) ? { ...d, i } : a, null);
+  if (best && best.tot > 0) items.push(["good", `Самый сильный день: ${DAYS_FULL[best.i]}, ${fmtHM(best.tot)}.`]);
+  if (prev && isCurrent && s.t < 7){
+    const ps = weekStats(prev, false); const upTo = s.t;
+    const pSame = ps.days.slice(0, upTo + 1).reduce((a,d) => a + d.tot, 0), cSame = s.days.slice(0, upTo + 1).reduce((a,d) => a + d.tot, 0);
+    const diff = cSame - pSame;
+    items.push([diff >= -0.25 ? "good" : "warn", `К этому дню прошлой недели было ${fmtHM(pSame)}, сейчас ${fmtHM(cSame)} (${diff >= 0 ? "+" : ""}${fmtHM(diff)}).`]);
+  }
+  return `<section class="card" aria-label="Выводы"><h2>Коротко</h2><ul class="ins">${items.map(([c,t]) => `<li class="${c}">${esc(t)}</li>`).join("")}</ul></section>`;
+}
+
+let manualOpen = false;
+function renderWeekView(w, isCurrent, prev){
+  if (!w) return `<div class="card"><div class="skeleton">${st.sheetErr ? "Данные появятся, когда таблица ответит." : "Загружаю данные из таблицы…"}</div></div>`;
+  const s = weekStats(w, isCurrent);
+  let cmp = "";
+  if (prev){ const ps = weekStats(prev, false); if (!isCurrent || s.t >= 7){ const d = s.done - ps.done; cmp = `${d >= 0 ? "+" : ""}${fmtHM(d)} к предыдущей неделе`; } }
+  const left = (isCurrent ? timerCard() : "") + (isCurrent ? todayCard(w, s) : "") + summaryCard(w, s, isCurrent, cmp);
+  const right = insightsCard(w, s, isCurrent, prev) + daysCard(s, isCurrent) + blocksCard(w, s, isCurrent, prev);
+  return `<div class="grid"><div class="col">${left}</div><div class="col">${right}</div></div>`;
+}
+
+function renderHistory(){
+  if (st.hist === null && !st.histErr){ loadHistory(); return `<div class="card"><div class="skeleton">Загружаю историю…</div></div>`; }
+  const weeks = [...histWeeks()];
+  const pw = prevWeek(); if (pw && !weeks.some(x => x.label === pw.label)) weeks.unshift(pw);
+  const real = weeks.filter(x => x.label !== "W40 (28.09–04.10)" || weeks.length === 1);
+  if (st.histPick){ const w = weeks.find(x => x.label === st.histPick); if (w) return `<div style="margin-bottom:12px"><button class="btn ghost" type="button" data-do="hist-back">← Все недели</button></div>` + renderWeekView(w, false, weeks[weeks.indexOf(w) + 1] || null); }
+  let h = `<div class="grid"><div class="col"><section class="card" aria-label="История"><h2>История недель<span class="aside">нажми неделю, чтобы открыть</span></h2>`;
+  if (st.histErr) h += `<div class="notice err">${esc(errText(st.histErr))}</div>`;
+  const list = real.slice().reverse();
+  if (list.length > 1){
+    const mx = Math.max(...list.map(w => Math.max(SUBJ.reduce((a,x) => a + w.done[x.k], 0), SUBJ.reduce((a,x) => a + w.plan[x.k], 0))), 1);
+    h += `<div class="trend">` + list.slice(-12).map(w => { const d = SUBJ.reduce((a,x) => a + w.done[x.k], 0); return `<div class="tc"><div class="tl">${fmtNum(d)}</div><div class="tb" style="height:${Math.max(4, d/mx*88)}px"></div><div class="tl">W${w.week}</div></div>`; }).join("") + `</div>`;
+  }
+  h += `<div class="hist">`;
+  for (const w of real){
+    const d = SUBJ.reduce((a,x) => a + w.done[x.k], 0), p = SUBJ.reduce((a,x) => a + w.plan[x.k], 0), pct = p ? Math.round(d/p*100) : 0;
+    h += `<button type="button" class="hrow" data-hist="${esc(w.label)}"><span class="w">${esc(w.label)}</span><span class="p num">${fmtNum(d)} / ${fmtNum(p)} ч · ${pct}%</span>
+      <div class="bar"><span style="width:${Math.min(100,pct)}%;background:${pct >= 100 ? "var(--good)" : pct >= 80 ? "var(--en)" : "var(--danger)"}"></span></div>
+      <div class="sub">${SUBJ.map(x => `<span>${x.name.slice(0,4).toLowerCase()}. ${fmtNum(w.done[x.k])}/${fmtNum(w.plan[x.k])}</span>`).join("")}</div></button>`;
+  }
+  h += `</div>`;
+  if (!histWeeks().length) h += `<p class="empty" style="margin-top:12px">Архив копится сам: каждый понедельник в 4:00 уходящая неделя переносится сюда. Первая настоящая неделя (W41) появится 19 октября. Неделя W40 в начале была примерной.</p>`;
+  return h + `</section></div><div class="col"></div></div>`;
+}
+
+function render(){
+  renderTop();
+  const sel = $("mAct")?.value, dsel = $("mDay")?.value, mval = $("mMin")?.value;
+  let h;
+  if (st.view === "prev") h = renderWeekView(prevWeek(), false, null);
+  else if (st.view === "hist") h = renderHistory();
+  else h = renderWeekView(curWeek(), true, prevWeek()) || "";
+  if (st.view === "cur" && !curWeek() && !st.values) h = `<div class="grid"><div class="col">${timerCard()}</div><div class="col"><div class="card"><div class="skeleton">${st.sheetErr ? "Данные появятся, когда таблица ответит." : "Загружаю данные из таблицы…"}</div></div></div></div>`;
+  $("view").innerHTML = h;
+  if ($("mAct")){ if (sel) $("mAct").value = sel; if (dsel) $("mDay").value = dsel; if (mval) $("mMin").value = mval; }
+  const t = st.timer, act = t.act ? actByKey(t.act) : null, running = !!(act && t.start);
+  $("dock").hidden = !running || !!st.confirm || st.view === "cur" && window.innerWidth >= 900;
+  if (running){ $("dockAct").textContent = act.label; $("dockClock").textContent = fmtClock(Date.now() - t.start); }
+}
+function tick(){
+  const t = st.timer; if (!t.act || !t.start) return;
+  const s = fmtClock(Date.now() - t.start);
+  document.querySelectorAll("[data-clock]").forEach(el => el.textContent = s);
+  $("dockClock").textContent = s;
+}
+
+document.addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b) return;
+  if (b.dataset.view){ st.view = b.dataset.view; st.histPick = null; try { localStorage.setItem("pult-view", st.view); } catch(e){} return render(); }
+  if (b.dataset.hist){ st.histPick = b.dataset.hist; return render(); }
+  if (b.dataset.act) return pressAct(b.dataset.act);
+  if (b.dataset.retry) return retryEntry(b.dataset.retry);
+  if (b.dataset.drop) return dropEntry(b.dataset.drop);
+  switch (b.dataset.do){
+    case "stop": return pressStop();
+    case "discard": st.discardAsk = true; return render();
+    case "discard-no": st.discardAsk = false; return render();
+    case "discard-yes": return discard();
+    case "confirm-save": return confirmLong(true);
+    case "confirm-cancel": return confirmLong(false);
+    case "manual": return addManual();
+    case "hist-back": st.histPick = null; return render();
+  }
+});
+document.addEventListener("toggle", ev => { if (ev.target.id === "manual") manualOpen = ev.target.open; }, true);
+$("dockStop").addEventListener("click", pressStop);
+let lastRefresh = 0;
+$("refreshBtn").addEventListener("click", () => {
+  if (Date.now() - lastRefresh < 3000) return;
+  lastRefresh = Date.now();
+  $("syncDot").className = "dot load"; $("syncText").textContent = "Обновляю…";
+  if (st.view === "hist") st.hist = null;
+  pullCloud(); refresh();
+});
+$("goDz").addEventListener("click", () => {
+  try { localStorage.setItem("dz_tab", "dz"); } catch(e){}
+  location.replace("./" + location.search + location.hash);
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden){ render(); pullCloud(); refresh(); } });
+function applyTheme(){ if (tg && tg.colorScheme) document.documentElement.dataset.theme = tg.colorScheme; }
+
+try { localStorage.setItem("dz_tab", "pult"); } catch(e){}
+if (tg){ tg.ready(); tg.expand(); applyTheme(); if (tg.onEvent) tg.onEvent("themeChanged", applyTheme); }
+loadLocal(); render(); setInterval(tick, 1000);
+
+(async () => {
+  pullCloud();
+  await findApi(false);
+  if (!API) await findApi(true);
+  st.loading = false;
+  if (!API){ render(); return; }
+  await refresh();
+  if (st.sheetErr && st.sheetErr.code === "forbidden"){ await findApi(true); await refresh(); }   // адрес мог смениться
+  setInterval(() => { if (!document.hidden){ pullCloud(); refresh(); } }, 60000);
+  setInterval(() => { if (!document.hidden) pullCloud(); }, 15000);
+})();
+})();
+</script>
+</body>
+</html>
