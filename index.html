@@ -206,6 +206,19 @@ const origHtml = orig => !orig || !orig.length ? "" : '<div class="orig" hidden>
   '<div class="o"><div class="src">' + esc(o.src || "Оригинал") + '</div><div class="q">' + esc(o.text) + "</div>"
   + (o.ru ? '<div class="ru">' + esc(o.ru) + "</div>" : "") + "</div>").join("") + "</div>";
 
+function itemHtml(it, done, lid) {
+  const links = (it.links || []).map(l => ({ t: l.t, url: pickLink(l) })).filter(l => l.url);
+  const single = links.length === 1 && !links[0].t;
+  return '<div class="item' + (done.has(it.id) ? " done" : "") + '" data-id="' + esc(it.id) + '"' + (lid ? ' data-l="' + esc(lid) + '"' : "") + '>'
+    + '<button class="check" data-toggle="' + esc(it.id) + '"' + (lid ? ' data-l="' + esc(lid) + '"' : "") + ' aria-label="Отметить"><i>' + CHECK + "</i></button>"
+    + '<div class="body"' + (single ? ' data-url="' + esc(links[0].url) + '"' : "") + '><div class="tx">' + esc(it.text) + (it.opt ? '<span class="dot"></span>' : "") + "</div>"
+    + (it.sub ? '<div class="sub">' + esc(it.sub) + "</div>" : "")
+    + (!single && links.length ? '<div class="links">' + links.map((l, n) => '<button class="chip" data-url="' + esc(l.url) + '">'
+        + esc(l.t || "ссылка " + (n + 1)) + "</button>").join("") + "</div>" : "")
+    + "</div>" + infoBtn(it.orig) + (single ? '<button class="arrow" data-url="' + esc(links[0].url) + '" aria-label="Открыть">' + ARROW + "</button>" : "")
+    + origHtml(it.orig) + "</div>";
+}
+
 async function render() {
   const app = document.getElementById("app");
   if (!data || !data.subjects || !data.subjects.length) { app.innerHTML = '<div class="empty">Заданий пока нет</div>'; return; }
@@ -249,33 +262,40 @@ async function render() {
       + (g.url && !g.section ? '<button class="go" data-url="' + esc(g.url) + '">' + esc(g.tag || "открыть") + " ↗</button>" : "")
       + infoBtn(g.orig) + '<span class="n" data-count="' + gi + '">' + gDone + "/" + g.items.length + "</span></div>"
       + origHtml(g.orig) + '<div class="list">';
-    g.items.forEach(it => {
-      const links = (it.links || []).map(l => ({ t: l.t, url: pickLink(l) })).filter(l => l.url);
-      const single = links.length === 1 && !links[0].t;
-      html += '<div class="item' + (done.has(it.id) ? " done" : "") + '" data-id="' + esc(it.id) + '">'
-        + '<button class="check" data-toggle="' + esc(it.id) + '" aria-label="Отметить"><i>' + CHECK + "</i></button>"
-        + '<div class="body"' + (single ? ' data-url="' + esc(links[0].url) + '"' : "") + '><div class="tx">' + esc(it.text) + (it.opt ? '<span class="dot"></span>' : "") + "</div>"
-        + (it.sub ? '<div class="sub">' + esc(it.sub) + "</div>" : "")
-        + (!single && links.length ? '<div class="links">' + links.map((l, n) => '<button class="chip" data-url="' + esc(l.url) + '">'
-            + esc(l.t || "ссылка " + (n + 1)) + "</button>").join("") + "</div>" : "")
-        + "</div>" + infoBtn(it.orig) + (single ? '<button class="arrow" data-url="' + esc(links[0].url) + '" aria-label="Открыть">' + ARROW + "</button>" : "")
-        + origHtml(it.orig) + "</div>";
-    });
+    g.items.forEach(it => { html += itemHtml(it, done); });
     html += "</div></div>";
   });
   if (openSection) html += "</div></div>";
-  const rest = lessons.filter(l => l !== lesson);
-  if (rest.length) {
-    html += '<div class="older"><div class="cap">Другие уроки</div><div class="list">';
-    for (const l of rest) {
-      const dn = await loadDone(subj, l.id), all = counted(l), n = all.filter(i => dn.has(i.id)).length, ld = new Date(l.date + "T12:00:00");
-      html += '<button class="lrow" data-lesson="' + esc(l.id) + '"><span class="d">' + ld.getDate() + " " + MONTHS[ld.getMonth()]
-        + '</span><span class="c' + (n === all.length ? " ok" : "") + '">' + n + "/" + all.length + "</span></button>";
+  // Архив: невыполненное со старых уроков (сделанное пропадает), сворачивается как раздел Classroom.
+  if (lesson === lessons[0]) {
+    let arch = "", total = 0;
+    for (const l of lessons.slice(1)) {
+      const dn = await loadDone(subj, l.id), left = counted(l).filter(i => !dn.has(i.id));
+      if (!left.length) continue;
+      total += left.length;
+      const ld = new Date(l.date + "T12:00:00");
+      arch += '<div class="group sub" data-al="' + esc(l.id) + '"><div class="ghead"><span class="t">урок ' + ld.getDate() + " " + MONTHS[ld.getMonth()]
+        + '</span></div><div class="list">' + left.map(it => itemHtml(it, dn, l.id)).join("") + "</div></div>";
     }
-    html += "</div></div>";
+    if (total) {
+      html += '<div class="section older' + (folds[subj + "/archive"] === false ? "" : " closed") + '"><div class="shead">'
+        + '<button class="t" data-afold="1"><span class="chev">▾</span> Старые невыполненные</button>'
+        + '<span class="n" id="acount">' + total + '</span></div><div class="sbody">' + arch + "</div></div>";
+    }
   }
   if (data.updated) html += '<div class="foot">обновлено ' + esc(data.updated) + "</div>";
   app.innerHTML = html;
+}
+
+async function toggleOld(id, lid) {
+  const done = await loadDone(subj, lid), on = !done.has(id);
+  on ? done.add(id) : done.delete(id);
+  store.set(keyOf(subj, lid), [...done]);
+  const row = document.querySelector('.item[data-l="' + CSS.escape(lid) + '"][data-id="' + CSS.escape(id) + '"]');
+  if (row) row.classList.toggle("done", on);
+  const c = document.getElementById("acount");
+  if (c) c.textContent = document.querySelectorAll(".older .item:not(.done)").length;
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(on ? "medium" : "light");
 }
 
 async function toggle(id) {
@@ -302,7 +322,7 @@ async function toggle(id) {
 }
 
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-toggle],[data-url],[data-subj],[data-lesson],[data-fold],[data-sfold],[data-info]");
+  const t = e.target.closest("[data-toggle],[data-url],[data-subj],[data-lesson],[data-fold],[data-sfold],[data-afold],[data-info]");
   if (!t) return;
   if (t.dataset.info) {
     const box = (t.closest(".item") || t.closest(".group")).querySelector(":scope > .orig");
@@ -311,7 +331,13 @@ document.addEventListener("click", e => {
     if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
     return;
   }
-  if (t.dataset.toggle) return toggle(t.dataset.toggle);
+  if (t.dataset.toggle) return t.dataset.l ? toggleOld(t.dataset.toggle, t.dataset.l) : toggle(t.dataset.toggle);
+  if (t.dataset.afold) {
+    folds[subj + "/archive"] = t.closest(".section").classList.toggle("closed");
+    try { localStorage.setItem("dz_fold", JSON.stringify(folds)); } catch (e) {}
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    return;
+  }
   if (t.dataset.url) return openLink(t.dataset.url);
   if (t.dataset.subj) { subj = t.dataset.subj; lessonId = null; return render(); }
   if (t.dataset.lesson) { lessonId = t.dataset.lesson; render().then(() => window.scrollTo(0, 0)); return; }
