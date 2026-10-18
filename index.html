@@ -15,6 +15,7 @@
     var sp = w && w.initDataUnsafe && w.initDataUnsafe.start_param;
     if (sp === "dz" || /[?&]tab=dz/.test(location.search)) localStorage.setItem("dz_tab", "dz");  // и кнопка «ДЗ» в /menu
     else if (localStorage.getItem("dz_tab") === "pult") location.replace("pult.html" + location.search + location.hash);
+    else if (/^(vpn|srv)$/.test(localStorage.getItem("dz_tab") || "")) location.replace("ctl.html" + location.search + "#" + localStorage.getItem("dz_tab"));
   } catch (e) {}
 })();
 </script>
@@ -40,7 +41,7 @@ body {
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
 
 .apps { display: flex; gap: 4px; background: var(--card); border-radius: 12px; padding: 4px; margin-bottom: 14px; }
-.apps button { flex: 1; text-align: center; border-radius: 9px; padding: 8px 14px; font-weight: 600; font-size: 14px; color: var(--hint); }
+.apps button { flex: 1; text-align: center; border-radius: 9px; padding: 8px 6px; white-space: nowrap; font-weight: 600; font-size: 14px; color: var(--hint); }
 .apps button.on { background: var(--accent); color: var(--on-accent); }
 .tabs { display: flex; gap: 8px; overflow-x: auto; margin: 0 -14px 14px; padding: 0 14px; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
@@ -122,7 +123,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 </style>
 </head>
 <body>
-<nav class="apps" aria-label="Разделы"><button class="on" aria-current="page">ДЗ</button><button id="goPult">Пульт</button></nav>
+<nav class="apps" aria-label="Разделы"><button class="on" aria-current="page">ДЗ</button><button id="goPult">Пульт</button><button class="own" data-ctl="vpn" hidden>VPN</button><button class="own" data-ctl="srv" hidden>Сервер</button></nav>
 <div id="app"><div class="empty">Загружаю…</div></div>
 <script>
 "use strict";
@@ -356,6 +357,21 @@ document.addEventListener("click", e => {
   }
 });
 
+// Кнопки «VPN» и «Сервер» — только хозяину бота (owner из gist; данные всё равно отдаются лишь по подписи Telegram)
+function showOwn(owner) {
+  try {
+    if (owner) localStorage.setItem("dz_owner", owner);
+    const me = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+    const ok = me && String(me) === String(owner || localStorage.getItem("dz_owner"));
+    document.querySelectorAll(".apps .own").forEach(b => b.hidden = !ok);
+  } catch (e) {}
+}
+showOwn();
+document.querySelectorAll(".apps .own").forEach(b => b.addEventListener("click", () => {
+  try { localStorage.setItem("dz_tab", b.dataset.ctl); } catch (e) {}
+  location.replace("ctl.html" + location.search + "#" + b.dataset.ctl);
+}));
+
 document.getElementById("goPult").addEventListener("click", () => {
   try { localStorage.setItem("dz_tab", "pult"); } catch (e) {}
   location.replace("pult.html" + location.search + location.hash);
@@ -381,6 +397,7 @@ async function fetchData() {
   if (data) await render();
   try {
     const fresh = await fetchData();
+    showOwn(fresh.owner);
     if (JSON.stringify(fresh) !== JSON.stringify(data)) {
       data = fresh;
       localStorage.setItem("dz_data", JSON.stringify(fresh));

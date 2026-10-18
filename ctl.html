@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>VPN и сервер</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Вкладки «VPN» (#vpn) и «Сервер» (#srv). Данные — botapi на своём сервере (нужен VPN), подпись — initData Telegram.
+   Палитра и шрифты — как у pult.html. */
+:root{
+  --bg:#EEF2F7; --surface:#FFFFFF; --surface-2:#F5F8FB; --ink:#152033; --muted:#5B6779; --faint:#8C97A8; --line:#DCE3EC;
+  --acc:#2D5BD8; --acc-soft:#E3EAFC; --teal:#0F8A6E; --teal-soft:#DDF3EC;
+  --good:#2C8A4A; --good-soft:#E2F3E7; --warn:#B4541E; --warn-soft:#FBE9DE; --danger:#B83A32; --danger-soft:#F9E2E0;
+  --shadow:0 1px 2px rgba(21,32,51,.06),0 8px 24px rgba(21,32,51,.06);
+  --f-display:"Unbounded","Onest",system-ui,sans-serif; --f-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:16px; --r-sm:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E131A; --surface:#161D27; --surface-2:#1C2531; --ink:#E6ECF4; --muted:#9AA6B6; --faint:#6D7A8C; --line:#28323F;
+  --acc:#86A6FF; --acc-soft:#1E2A4A; --teal:#4CCBA8; --teal-soft:#173A33;
+  --good:#5CC27D; --good-soft:#18331F; --warn:#F09A62; --warn-soft:#3A2416; --danger:#F07C72; --danger-soft:#3B1C1A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E131A; --surface:#161D27; --surface-2:#1C2531; --ink:#E6ECF4; --muted:#9AA6B6; --faint:#6D7A8C; --line:#28323F;
+  --acc:#86A6FF; --acc-soft:#1E2A4A; --teal:#4CCBA8; --teal-soft:#173A33;
+  --good:#5CC27D; --good-soft:#18331F; --warn:#F09A62; --warn-soft:#3A2416; --danger:#F07C72; --danger-soft:#3B1C1A;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25); color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+.wrap{max-width:1140px;margin:0 auto;padding:18px 16px 60px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.apps{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:14px}
+.apps button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px 6px;font-weight:600;font-size:14px;color:var(--muted);white-space:nowrap}
+.apps button.on{background:var(--acc);color:var(--surface)}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+header h1{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:-.01em;margin:0}
+.sync{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.dot.ok{background:var(--good)} .dot.err{background:var(--danger)} .dot.load{background:var(--warn);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px}
+.grid{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}}
+.col{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card h2 .aside{text-transform:none;letter-spacing:0;font-weight:500;color:var(--faint)}
+.notice{background:var(--warn-soft);color:var(--warn);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:14px;font-size:14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.notice button{border:0;border-radius:9px;padding:7px 12px;font-weight:600;background:var(--warn);color:var(--surface)}
+.status{display:flex;align-items:center;gap:14px}
+.big{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.1}
+.pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 12px;font-weight:600;font-size:14px}
+.pill.ok{background:var(--good-soft);color:var(--good)} .pill.bad{background:var(--danger-soft);color:var(--danger)}
+.pill .dot{background:currentColor}
+.sub{color:var(--muted);font-size:13px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:4px 10px;font-size:13px}
+.chip.on{border-color:transparent;background:var(--teal-soft);color:var(--teal);font-weight:600}
+.person{padding:10px 0;border-top:1px solid var(--line)} .person:first-of-type{border-top:0;padding-top:0}
+.prow{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.pname{font-weight:600}
+.pval{font-family:var(--f-mono);font-weight:700;font-size:15px}
+.bar{height:8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;margin-top:7px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--acc)}
+.bar.warn i{background:var(--warn)} .bar.danger i{background:var(--danger)}
+.tag{font-size:11px;font-weight:700;border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:1px}
+.tag.off{background:var(--danger-soft);color:var(--danger)} .tag.new{background:var(--acc-soft);color:var(--acc)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:var(--r-sm);padding:11px 12px;font-weight:600;text-align:center}
+.btn:active{transform:scale(.98)}
+.btn.danger{color:var(--danger)} .btn.good{color:var(--good)}
+.link{display:flex;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--line)} .link:first-of-type{border-top:0;padding-top:0}
+.link .t{flex:1;min-width:0}
+.link .u{font-family:var(--f-mono);font-size:11px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg{display:inline-flex;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:3px 9px;font-size:12px;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
+.seg button.on{background:var(--ink);color:var(--surface)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.stat{background:var(--surface-2);border-radius:12px;padding:10px 12px;min-width:0}
+.stat b{display:block;font-family:var(--f-mono);font-size:18px}
+.stat span{font-size:12px;color:var(--muted)}
+.hist{display:flex;align-items:flex-end;gap:2px;height:56px;margin:4px 0 2px}
+.hist i{flex:1;background:var(--acc);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.hist i.z{background:var(--line)}
+.hlab{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;color:var(--faint);margin-bottom:14px}
+.verdict{border-radius:12px;padding:11px 13px;font-size:14px;margin-bottom:14px}
+.verdict.ok{background:var(--good-soft);color:var(--good)}
+.verdict.warn{background:var(--warn-soft);color:var(--ink)}
+.verdict.warn b{color:var(--warn)}
+.verdict .h{font-family:var(--f-mono);font-size:12px;color:var(--muted);word-break:break-all}
+.svc{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line);cursor:pointer}
+.svc:first-of-type{border-top:0}
+.svc .n{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.svc .c{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.svc .w{grid-column:1/-1;font-size:12px;color:var(--faint)}
+.svc .hosts{grid-column:1/-1;font-family:var(--f-mono);font-size:11px;color:var(--muted);word-break:break-all;display:none}
+.svc.open .hosts{display:block}
+.mini{height:4px;border-radius:9px;background:var(--acc-soft);grid-column:1/-1;overflow:hidden} .mini i{display:block;height:100%;background:var(--acc)}
+.review p{margin:0 0 9px;font-size:14px} .review p:last-child{margin:0}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:600px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow);min-width:0}
+.tile .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.tile .v{font-family:var(--f-mono);font-weight:700;font-size:20px;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .s{font-size:12px;color:var(--faint);margin-top:2px}
+.srow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)} .srow:first-of-type{border-top:0;padding-top:0}
+.srow .n{flex:1} .srow .st{font-size:13px;color:var(--muted)}
+.empty{color:var(--muted);font-size:14px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:12px;font-size:14px;z-index:9;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="apps" aria-label="Разделы">
+    <button type="button" data-go="dz">ДЗ</button><button type="button" data-go="pult">Пульт</button>
+    <button type="button" data-view="vpn">VPN</button><button type="button" data-view="srv">Сервер</button>
+  </nav>
+  <header class="top">
+    <h1 id="title">VPN</h1>
+    <div class="sync"><span class="dot load" id="syncDot"></span><span id="syncText">Связываюсь с сервером</span><button class="iconbtn" id="refreshBtn" type="button">Обновить</button></div>
+  </header>
+  <div id="notice"></div>
+  <div id="view"></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+const tg = window.Telegram && window.Telegram.WebApp;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const GIST = new URLSearchParams(location.search).get("g");
+const st = { all: false, view: location.hash === "#srv" ? "srv" : "vpn", hours: 24, cfg: null, vpn: null, srv: null, sites: {}, err: null, busy: false };
+const get = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const put = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+const fmtGB = b => (b / 1e9).toLocaleString("ru-RU", { maximumFractionDigits: b < 1e10 ? 1 : 0 }) + " ГБ";
+const fmtSize = b => b >= 1e9 ? (b / 2 ** 30).toLocaleString("ru-RU", { maximumFractionDigits: 1 }) + " ГБ" : Math.round(b / 2 ** 20) + " МБ";
+const hm = t => new Date(t * 1000).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Moscow" });
+const dhm = t => new Date(t * 1000).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Moscow" });
+const sameDay = (a, b) => new Date(a * 1000).toLocaleDateString("ru-RU", { timeZone: "Europe/Moscow" }) === new Date(b * 1000).toLocaleDateString("ru-RU", { timeZone: "Europe/Moscow" });
+const plural = (n, a, b, c) => { n = Math.abs(n) % 100; if (n > 10 && n < 20) return c; n %= 10; return n === 1 ? a : n >= 2 && n <= 4 ? b : c; };
+const bold = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+function bar(frac, cls) { const p = Math.max(0, Math.min(100, frac * 100)); return `<div class="bar ${cls || (p > 90 ? "danger" : p > 70 ? "warn" : "")}"><i style="width:${p.toFixed(1)}%"></i></div>`; }
+function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 2600); }
+function haptic(k) { try { tg.HapticFeedback.impactOccurred(k || "light"); } catch (e) {} }
+
+async function config() {
+  if (st.cfg) return st.cfg;
+  st.cfg = get("ctl_cfg");
+  try {
+    const r = await fetch("https://api.github.com/gists/" + GIST, { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" });
+    const f = (await r.json()).files["data.json"];
+    const d = JSON.parse(f.truncated ? await (await fetch(f.raw_url)).text() : f.content);
+    st.cfg = { api: d.botapi, owner: d.owner };
+    put("ctl_cfg", st.cfg);
+    if (d.owner) put("dz_owner", d.owner);
+  } catch (e) { if (!st.cfg) throw new Error("Не загрузились настройки приложения"); }
+  return st.cfg;
+}
+
+async function call(path, body) {
+  const cfg = await config();
+  if (!cfg.api) throw new Error("Адрес сервера не задан");
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 25000);
+  try {
+    const r = await fetch(cfg.api + path, { method: body ? "POST" : "GET", signal: ctl.signal, cache: "no-store",
+      headers: Object.assign({ "X-Init-Data": tg ? tg.initData : "" }, body ? { "Content-Type": "application/json" } : {}),
+      body: body ? JSON.stringify(body) : undefined });
+    if (r.status === 403) throw Object.assign(new Error("Нет доступа — эти вкладки только для хозяина бота"), { hard: true });
+    if (!r.ok) throw new Error("Сервер ответил " + r.status);
+    return await r.json();
+  } catch (e) {
+    if (e.hard) throw e;
+    throw new Error("Нет связи с сервером");
+  } finally { clearTimeout(t); }
+}
+
+async function refresh() {
+  st.busy = true; sync();
+  try {
+    if (st.view === "vpn") {
+      const [v, s] = await Promise.all([call("vpn"), call("sites?h=" + st.hours)]);
+      st.vpn = v; st.sites[st.hours] = s; put("ctl_vpn", v); put("ctl_sites" + st.hours, s);
+    } else {
+      st.srv = await call("server"); put("ctl_srv", st.srv);
+    }
+    st.err = null; st.at = Date.now();
+  } catch (e) { st.err = e; }
+  st.busy = false; render();
+}
+
+function sync() {
+  $("syncDot").className = "dot " + (st.busy ? "load" : st.err ? "err" : "ok");
+  $("syncText").textContent = st.busy ? "Обновляю…" : st.err ? "Нет связи" :
+    "Обновлено в " + new Date(st.at || Date.now()).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+}
+
+function render() {
+  document.querySelectorAll(".apps [data-view]").forEach(b => b.classList.toggle("on", b.dataset.view === st.view));
+  $("title").textContent = st.view === "vpn" ? "VPN" : "Сервер";
+  sync();
+  $("notice").innerHTML = st.err ? `<div class="notice"><span>⚠️ ${esc(st.err.message)}${st.err.hard ? "" :
+    ". Включите VPN (Happ) — без него до сервера не достучаться. Или откройте /menu в чате с ботом: там работает всегда."}</span>
+    ${st.err.hard ? "" : '<button type="button" id="toChat">Открыть чат</button>'}</div>` : "";
+  $("view").innerHTML = st.view === "vpn" ? vpnView() : srvView();
+}
+
+function vpnView() {
+  const v = st.vpn, s = st.sites[st.hours];
+  if (!v && !s) return st.busy ? '<div class="empty">Загружаю…</div>' : '<div class="empty">Данных пока нет.</div>';
+  let left = "", right = "";
+  if (v) {
+    const ok = v.active === "active", now = v.people.filter(p => p.online);
+    left += `<section class="card"><h2>Состояние<span class="aside">без перезапуска с ${esc(v.since)}</span></h2>
+      <div class="status"><span class="pill ${ok ? "ok" : "bad"}"><span class="dot"></span>${ok ? "Работает" : "Не работает: " + esc(v.active)}</span></div>
+      <div class="chips">${v.online_ok ? (now.length ? now.map(p => `<span class="chip on">● ${esc(p.name)} · ${p.online} ${plural(p.online, "устройство", "устройства", "устройств")}</span>`).join("")
+        : '<span class="chip">Сейчас никто не подключён</span>') : '<span class="chip">Кто подключён — неизвестно</span>'}</div></section>`;
+    left += `<section class="card"><h2>Трафик за ${esc(v.month)}</h2>${v.people.map(p => `<div class="person">
+      <div class="prow"><span class="pname">${esc(p.name)}${p.blocked ? '<span class="tag off">отключён</span>' : ""}</span>
+      <span class="pval num">${fmtGB(p.used)}${p.limit ? `<span class="sub"> из ${fmtGB(p.limit)}</span>` : ""}</span></div>
+      ${p.limit ? bar(p.used / p.limit) + `<div class="sub">осталось ${fmtGB(Math.max(0, p.limit - p.used))} · сброс 1-го числа</div>` : '<div class="sub">без лимита</div>'}</div>`).join("")}</section>`;
+    const fr = v.people.find(p => p.id === "friend");
+    left += `<section class="card"><h2>Управление</h2><div class="actions">
+      <button type="button" class="btn" data-act="restart-hy">🔄 Перезапустить VPN</button>
+      ${fr ? (fr.blocked ? '<button type="button" class="btn good" data-act="friend-on">✅ Включить друга</button>'
+                         : '<button type="button" class="btn danger" data-act="friend-off">⛔ Отключить друга</button>') : ""}</div></section>`;
+  }
+  const links = (v && v.links) || {};
+  const L = [["me", "Ваша ссылка", "для себя и семьи"], ["friend", "Ссылка друга", "лимит 300 ГБ в месяц"]].filter(x => links[x[0]]);
+  if (L.length) left += `<section class="card"><h2>Ссылки для Happ</h2>${L.map(([k, t, d]) => `<div class="link"><div class="t"><b>${t}</b> <span class="sub">· ${d}</span>
+    <div class="u">${esc(links[k])}</div></div><button type="button" class="iconbtn" data-copy="${esc(k)}">Копировать</button></div>`).join("")}</section>`;
+  right += sitesCard(s);
+  if (s && s.review && s.review.lines.length) right += `<section class="card review"><h2>Разбор нейросети<span class="aside">${esc(s.review.window)}</span></h2>
+    ${s.review.lines.map(l => `<p>${bold(l)}</p>`).join("")}</section>`;
+  return `<div class="grid"><div class="col">${left}</div><div class="col">${right}</div></div>`;
+}
+
+function sitesCard(s) {
+  const seg = `<span class="seg">${[[24, "24 ч"], [48, "48 ч"], [168, "7 дн"]].map(([h, l]) => `<button type="button" data-hours="${h}" class="${st.hours === h ? "on" : ""}">${l}</button>`).join("")}</span>`;
+  if (!s) return `<section class="card"><h2>Сайты друга ${seg}</h2><div class="empty">${st.busy ? "Загружаю…" : "Нет данных."}</div></section>`;
+  let h = `<section class="card"><h2>Сайты друга ${seg}</h2>`;
+  h += `<div class="sub" style="margin:-6px 0 12px">${dhm(s.from)} — ${dhm(s.to)} (МСК)${s.blocked ? ' · <b style="color:var(--danger)">друг отключён</b>' : ""}</div>`;
+  if (!s.total) return h + '<div class="empty">Записей нет — VPN за это время не использовался.</div></section>';
+  const g = s.groups, fresh = g.filter(x => x.new).length;
+  h += `<div class="stats"><div class="stat"><b class="num">${s.total}</b><span>подключений</span></div>
+    <div class="stat"><b class="num">${g.length}</b><span>сервисов и сайтов</span></div><div class="stat"><b class="num">${fresh}</b><span>новых</span></div></div>`;
+  const mx = Math.max(...s.hours_hist, 1);
+  h += `<div class="hist" title="Активность по часам, МСК">${s.hours_hist.map((n, i) => `<i class="${n ? "" : "z"}" style="height:${n ? Math.max(6, 100 * n / mx) : 4}%" title="${i}:00 — ${n}"></i>`).join("")}</div>
+    <div class="hlab"><span>0</span><span>6</span><span>12</span><span>18</span><span>23 ч</span></div>`;
+  h += s.flags.length ? `<div class="verdict warn"><b>Есть что посмотреть</b> — пометки по словам в адресах, повод проверить, а не приговор.
+      ${s.flags.map(f => `<div style="margin-top:8px">${esc(f.icon)} <b>${esc(f.what)}</b><div class="h">${f.hosts.map(esc).join(", ")}</div></div>`).join("")}</div>`
+    : '<div class="verdict ok">✅ Взрослого, ставок, крипты, знакомств и подозрительных адресов не видно.</div>';
+  const top = g[0].n;
+  const shown = st.all ? g : g.slice(0, 15);
+  h += shown.map((x, i) => `<div class="svc" data-svc="${i}"><span class="n">${esc(x.name)}${x.new ? '<span class="tag new">новое</span>' : ""}</span>
+    <span class="c num">${x.n}</span><div class="mini"><i style="width:${(100 * x.n / top).toFixed(1)}%"></i></div>
+    <span class="w">${sameDay(x.first, x.last) ? hm(x.first) + "–" + hm(x.last) : dhm(x.first) + " – " + dhm(x.last)}</span>
+    <div class="hosts">${x.hosts.map(esc).join("<br>")}</div></div>`).join("");
+  if (g.length > 15) h += `<button type="button" class="btn" id="allBtn" style="width:100%;margin-top:10px">${st.all ? "Свернуть" : "Показать все (" + g.length + ")"}</button>`;
+  return h + "</section>";
+}
+
+function srvView() {
+  const s = st.srv;
+  if (!s) return st.busy ? '<div class="empty">Загружаю…</div>' : '<div class="empty">Данных пока нет.</div>';
+  const d = Math.floor(s.uptime / 86400), hh = Math.floor(s.uptime % 86400 / 3600);
+  const allOk = s.services.every(x => x.state === "active") && !s.failed.length;
+  const load = s.load[0] / (s.cpus || 1);
+  let h = `<div class="tiles">
+    <div class="tile"><div class="l">Состояние</div><div class="v" style="font-size:17px;color:var(--${allOk ? "good" : "danger"})">${allOk ? "● Всё в порядке" : "● Есть сбои"}</div><div class="s">Рига, HostVDS</div></div>
+    <div class="tile"><div class="l">Работает</div><div class="v num">${d ? d + " дн " : ""}${hh} ч</div><div class="s">без перезагрузки</div></div>
+    <div class="tile"><div class="l">Нагрузка</div><div class="v num">${Math.round(load * 100)}%</div>${bar(load)}<div class="s">${s.load.map(x => x.toFixed(2)).join(" · ")}</div></div>
+    <div class="tile"><div class="l">Память</div><div class="v num">${fmtSize(s.mem_used)}</div>${bar(s.mem_used / s.mem_total)}<div class="s">из ${fmtSize(s.mem_total)}</div></div>
+    <div class="tile"><div class="l">Диск</div><div class="v num">${fmtSize(s.disk_used)}</div>${bar(s.disk_used / s.disk_total)}<div class="s">из ${fmtSize(s.disk_total)}</div></div>
+    <div class="tile"><div class="l">Трафик за месяц</div><div class="v num">${fmtGB(s.traffic_month)}</div>${bar(s.traffic_month / s.traffic_limit)}<div class="s">из 1000 ГБ · сегодня ${fmtGB(s.traffic_today)}</div></div>
+  </div>`;
+  const paid = s.paid_until ? new Date(s.paid_until + "T12:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long" }) : "?";
+  const warn = s.days_left != null && s.days_left <= 7;
+  h += `<div class="grid" style="margin-top:16px"><section class="card"><h2>Оплата</h2>
+    <div class="big num" style="color:var(--${warn ? "warn" : "ink"})">до ${esc(paid)}</div>
+    <div class="sub" style="margin-top:4px">${s.days_left != null ? `через ${s.days_left} ${plural(s.days_left, "день", "дня", "дней")}` : ""}${warn ? " — пора пополнить баланс HostVDS" : ""}</div></section>
+    <section class="card"><h2>Службы</h2>${s.services.map(x => `<div class="srow"><span class="dot ${x.state === "active" ? "ok" : "err"}"></span>
+      <span class="n">${esc(x.name)}</span><span class="st">${x.state === "active" ? "работает" : esc(x.state)}</span></div>`).join("")}
+      ${s.failed.length ? `<div class="verdict warn" style="margin:12px 0 0">Упавшие: ${s.failed.map(esc).join(", ")}</div>` : ""}</section></div>`;
+  return h;
+}
+
+async function act(a) {
+  const q = { "restart-hy": "Перезапустить VPN? Связь у всех пропадёт на пару секунд.",
+              "friend-off": "Отключить друга? Его сразу выкинет из VPN.", "friend-on": "Включить друга обратно?" }[a];
+  const ok = await new Promise(res => tg && tg.showConfirm ? tg.showConfirm(q, res) : res(confirm(q)));
+  if (!ok) return;
+  haptic("medium"); toast("Выполняю…");
+  try { const r = await call("act", { a }); toast((r.msg || "Готово").replace(/<[^>]+>/g, "")); }
+  catch (e) { toast(e.message); }
+  refresh();
+}
+
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) { const t = document.createElement("textarea"); t.value = text; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); }
+  haptic(); toast("Скопировано");
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("button,[data-svc]");
+  if (!t) return;
+  if (t.id === "toChat") return tg ? tg.openTelegramLink("https://t.me/devoirbotbot") : location.assign("https://t.me/devoirbotbot");
+  if (t.id === "refreshBtn") return refresh();
+  if (t.id === "allBtn") { st.all = !st.all; return render(); }
+  if (t.dataset.go) {
+    try { localStorage.setItem("dz_tab", t.dataset.go); } catch (er) {}
+    return location.replace((t.dataset.go === "pult" ? "pult.html" : "./") + location.search);
+  }
+  if (t.dataset.view && t.dataset.view !== st.view) {
+    st.view = t.dataset.view; history.replaceState(null, "", "#" + st.view);
+    try { localStorage.setItem("dz_tab", st.view); } catch (er) {}
+    st.err = null; render(); return refresh();
+  }
+  if (t.dataset.hours) { st.hours = +t.dataset.hours; st.sites[st.hours] = st.sites[st.hours] || get("ctl_sites" + st.hours); render(); return refresh(); }
+  if (t.dataset.act) return act(t.dataset.act);
+  if (t.dataset.copy) return copy(st.vpn.links[t.dataset.copy]);
+  if (t.dataset.svc) { t.classList.toggle("open"); haptic(); }
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - (st.at || 0) > 60000) refresh(); });
+function applyTheme() { if (tg && tg.colorScheme) document.documentElement.dataset.theme = tg.colorScheme; }
+
+try { localStorage.setItem("dz_tab", st.view); } catch (e) {}
+if (tg) { tg.ready(); tg.expand(); applyTheme(); if (tg.onEvent) tg.onEvent("themeChanged", applyTheme); }
+st.cfg = get("ctl_cfg"); st.vpn = get("ctl_vpn"); st.srv = get("ctl_srv"); st.sites[24] = get("ctl_sites24");
+render(); refresh();
+})();
+</script>
+</body>
+</html>

@@ -191,13 +191,13 @@ details.manual summary{cursor:pointer;font-size:14px;color:var(--muted);font-wei
 @media (min-width:900px){.dock{display:none!important}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .apps{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:14px}
-.apps button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px 14px;font-weight:600;font-size:14px;color:var(--muted)}
+.apps button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px 6px;white-space:nowrap;font-weight:600;font-size:14px;color:var(--muted)}
 .apps button.on{background:var(--fr);color:var(--surface)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <nav class="apps" aria-label="Разделы"><button type="button" id="goDz">ДЗ</button><button type="button" class="on" aria-current="page">Пульт</button></nav>
+  <nav class="apps" aria-label="Разделы"><button type="button" id="goDz">ДЗ</button><button type="button" class="on" aria-current="page">Пульт</button><button type="button" class="own" data-ctl="vpn" hidden>VPN</button><button type="button" class="own" data-ctl="srv" hidden>Сервер</button></nav>
   <header class="top">
     <div class="brand"><h1>Пульт учёбы</h1></div>
     <div class="sync"><span class="dot load" id="syncDot"></span><span id="syncText">Подключаюсь к таблице</span><button class="iconbtn" id="refreshBtn" type="button">Обновить</button></div>
@@ -696,6 +696,13 @@ $("refreshBtn").addEventListener("click", () => {
   if (st.view === "hist") st.hist = null;
   pullCloud(); refresh();
 });
+try {  // «VPN» и «Сервер» — только хозяину (dz_owner кладёт вкладка ДЗ)
+  const me = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
+  const ok = me && String(me) === localStorage.getItem("dz_owner");
+  document.querySelectorAll(".apps .own").forEach(b => { b.hidden = !ok; b.addEventListener("click", () => {
+    try { localStorage.setItem("dz_tab", b.dataset.ctl); } catch (e) {}
+    location.replace("ctl.html" + location.search + "#" + b.dataset.ctl); }); });
+} catch (e) {}
 $("goDz").addEventListener("click", () => {
   try { localStorage.setItem("dz_tab", "dz"); } catch(e){}
   location.replace("./" + location.search + location.hash);
