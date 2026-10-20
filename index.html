@@ -6,6 +6,9 @@
 <meta name="robots" content="noindex">
 <title>ДЗ</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <script>
 // Четыре вкладки: ДЗ (эта страница), Пульт (pult.html), VPN и Сервер (ctl.html). Вкладку задаёт ?tab=dz|pult|vpn|srv
 // (кнопки /menu, карточка урока — startapp=dz); без него — та, что была последней.
@@ -22,46 +25,52 @@
 })();
 </script>
 <style>
+/* Палитра, шрифты и карточки — как у pult.html и ctl.html (тёмная/светлая — по теме Telegram, data-theme). */
 :root {
-  --bg: var(--tg-theme-secondary-bg-color, #0f1a1c);
-  --card: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #17272a));
-  --text: var(--tg-theme-text-color, #e9f1f1);
-  --hint: var(--tg-theme-hint-color, #7f9698);
-  --link: var(--tg-theme-link-color, #6ac7c1);
-  --accent: var(--tg-theme-button-color, #3fa9a2);
-  --on-accent: var(--tg-theme-button-text-color, #fff);
-  --line: rgba(128, 150, 152, .18);
-  --ok: #45c08a;
+  --bg: #EEF2F7; --card: #FFFFFF; --card-2: #F5F8FB; --text: #152033; --hint: #5B6779; --faint: #8C97A8;
+  --link: #2D5BD8; --link-soft: #E3EAFC; --accent: #2D5BD8; --on-accent: #FFFFFF; --line: #DCE3EC;
+  --ok: #2C8A4A; --soon: #B4541E;
+  --shadow: 0 1px 2px rgba(21,32,51,.06), 0 8px 24px rgba(21,32,51,.06);
+  --f-display: "Unbounded", "Onest", system-ui, sans-serif; --f-body: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E131A; --card: #161D27; --card-2: #1C2531; --text: #E6ECF4; --hint: #9AA6B6; --faint: #6D7A8C;
+  --link: #86A6FF; --link-soft: #1E2A4A; --accent: #86A6FF; --on-accent: #161D27; --line: #28323F;
+  --ok: #5CC27D; --soon: #F09A62; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0E131A; --card: #161D27; --card-2: #1C2531; --text: #E6ECF4; --hint: #9AA6B6; --faint: #6D7A8C;
+  --link: #86A6FF; --link-soft: #1E2A4A; --accent: #86A6FF; --on-accent: #161D27; --line: #28323F;
+  --ok: #5CC27D; --soon: #F09A62; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); color-scheme: dark; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
 body {
-  font: 15px/1.35 -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Noto Sans", sans-serif;
-  padding: 14px 14px calc(28px + env(safe-area-inset-bottom));
+  font: 15px/1.45 var(--f-body); -webkit-font-smoothing: antialiased;
+  padding: 18px 16px calc(28px + env(safe-area-inset-bottom));
   max-width: 640px; margin: 0 auto;
 }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
 
-.apps { display: flex; gap: 4px; background: var(--card); border-radius: 12px; padding: 4px; margin-bottom: 14px; }
+.apps { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-bottom: 14px; }
 .apps button { flex: 1; text-align: center; border-radius: 9px; padding: 8px 6px; white-space: nowrap; font-weight: 600; font-size: 14px; color: var(--hint); }
 .apps button.on { background: var(--accent); color: var(--on-accent); }
 .tabs { display: flex; gap: 8px; overflow-x: auto; margin: 0 -14px 14px; padding: 0 14px; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
-.tab { flex: none; padding: 7px 14px; border-radius: 999px; background: var(--card); color: var(--hint); font-weight: 600; }
-.tab.on { background: var(--accent); color: var(--on-accent); }
+.tab { flex: none; padding: 7px 14px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); color: var(--hint); font-weight: 600; }
+.tab.on { background: var(--accent); border-color: transparent; color: var(--on-accent); }
 
-.hero { background: var(--card); border-radius: 18px; padding: 16px; display: flex; gap: 14px; align-items: center; }
+.hero { background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 16px; padding: 18px; display: flex; gap: 14px; align-items: center; }
 .ring { flex: none; width: 64px; height: 64px; position: relative; }
 .ring svg { width: 64px; height: 64px; transform: rotate(-90deg); }
 .ring circle { fill: none; stroke-width: 6; }
 .ring .track { stroke: var(--line); }
 .ring .bar { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .35s ease, stroke .35s; }
 .ring.full .bar { stroke: var(--ok); }
-.ring b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; font-variant-numeric: tabular-nums; }
-.hero h1 { margin: 0 0 3px; font-size: 19px; line-height: 1.2; }
+.ring b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 700 14px var(--f-mono); }
+.hero h1 { margin: 0 0 4px; font: 700 18px/1.2 var(--f-display); letter-spacing: -.01em; }
 .hero p { margin: 0; color: var(--hint); font-size: 13.5px; }
 .hero p b { color: var(--text); font-weight: 600; }
-.hero .soon { color: #e8a34a; }
+.hero .soon { color: var(--soon); }
 
 .group { margin-top: 18px; }
 .ghead { display: flex; align-items: baseline; gap: 8px; padding: 0 6px 7px; width: 100%; }
@@ -80,7 +89,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .section.closed .chev { transform: rotate(-90deg); }
 .section.closed .sbody { display: none; }
 .section .group.sub { margin-top: 10px; }
-.list { background: var(--card); border-radius: 16px; overflow: hidden; }
+.list { background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 16px; overflow: hidden; }
 
 .item { display: flex; flex-wrap: wrap; align-items: stretch; min-height: 50px; }
 .info { flex: none; align-self: center; width: 24px; height: 24px; margin: 0 4px; border-radius: 50%; border: 1.5px solid var(--hint); color: var(--hint);
@@ -107,7 +116,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .body .sub { color: var(--hint); font-size: 12.5px; margin-top: 1px; }
 .item.done .tx { color: var(--hint); text-decoration: line-through; text-decoration-color: var(--line); }
 .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
-.chip { padding: 4px 10px; border-radius: 999px; background: rgba(106, 199, 193, .13); color: var(--link); font-size: 12.5px; font-weight: 600; }
+.chip { padding: 4px 10px; border-radius: 999px; background: var(--link-soft); color: var(--link); font-size: 12.5px; font-weight: 600; }
 .chip:active, .arrow:active { opacity: .55; }
 .arrow { flex: none; width: 44px; display: flex; align-items: center; justify-content: center; color: var(--link); }
 .arrow svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
@@ -380,6 +389,8 @@ function goTab(tab) {
   location.replace((tab === "pult" ? "pult.html" : "ctl.html") + "?g=" + encodeURIComponent(GIST) + "&tab=" + tab);
 }
 
+function applyTheme() { if (tg && tg.colorScheme) document.documentElement.dataset.theme = tg.colorScheme; }
+
 async function fetchData() {
   if (!GIST) throw new Error("no gist");
   try {
@@ -395,7 +406,7 @@ async function fetchData() {
 }
 
 (async () => {
-  if (tg) { tg.ready(); tg.expand(); }
+  if (tg) { tg.ready(); tg.expand(); applyTheme(); if (tg.onEvent) tg.onEvent("themeChanged", applyTheme); }
   try { data = JSON.parse(localStorage.getItem("dz_data") || "null"); } catch (e) {}
   if (data) await render();
   try {
