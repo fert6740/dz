@@ -7,15 +7,17 @@
 <title>ДЗ</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-// Две вкладки приложения: «ДЗ» (эта страница) и «Пульт» (pult.html). Открываем ту, что была последней;
-// по ссылке из карточки урока (startapp=dz) — всегда ДЗ.
+// Четыре вкладки: ДЗ (эта страница), Пульт (pult.html), VPN и Сервер (ctl.html). Вкладку задаёт ?tab=dz|pult|vpn|srv
+// (кнопки /menu, карточка урока — startapp=dz); без него — та, что была последней.
 (function () {
   try {
     var w = window.Telegram && window.Telegram.WebApp;
     var sp = w && w.initDataUnsafe && w.initDataUnsafe.start_param;
-    if (sp === "dz" || /[?&]tab=dz/.test(location.search)) localStorage.setItem("dz_tab", "dz");  // и кнопка «ДЗ» в /menu
-    else if (localStorage.getItem("dz_tab") === "pult") location.replace("pult.html" + location.search + location.hash);
-    else if (/^(vpn|srv)$/.test(localStorage.getItem("dz_tab") || "")) location.replace("ctl.html" + location.search + "#" + localStorage.getItem("dz_tab"));
+    var q = new URLSearchParams(location.search);
+    var tab = sp === "dz" ? "dz" : q.get("tab") || localStorage.getItem("dz_tab") || "dz";
+    var page = { pult: "pult.html", vpn: "ctl.html", srv: "ctl.html" }[tab];
+    localStorage.setItem("dz_tab", page ? tab : "dz");
+    if (page) location.replace(page + "?g=" + encodeURIComponent(q.get("g") || localStorage.getItem("dz_gist") || "") + "&tab=" + tab);
   } catch (e) {}
 })();
 </script>
@@ -368,14 +370,15 @@ function showOwn(owner) {
 }
 showOwn();
 document.querySelectorAll(".apps .own").forEach(b => b.addEventListener("click", () => {
-  try { localStorage.setItem("dz_tab", b.dataset.ctl); } catch (e) {}
-  location.replace("ctl.html" + location.search + "#" + b.dataset.ctl);
+  goTab(b.dataset.ctl);
 }));
 
-document.getElementById("goPult").addEventListener("click", () => {
-  try { localStorage.setItem("dz_tab", "pult"); } catch (e) {}
-  location.replace("pult.html" + location.search + location.hash);
-});
+document.getElementById("goPult").addEventListener("click", () => goTab("pult"));
+// переход на другую вкладку — всегда явным ?tab=, чтобы не зависеть от прошлого адреса
+function goTab(tab) {
+  try { localStorage.setItem("dz_tab", tab); } catch (e) {}
+  location.replace((tab === "pult" ? "pult.html" : "ctl.html") + "?g=" + encodeURIComponent(GIST) + "&tab=" + tab);
+}
 
 async function fetchData() {
   if (!GIST) throw new Error("no gist");

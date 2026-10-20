@@ -700,13 +700,15 @@ try {  // «VPN» и «Сервер» — только хозяину (dz_owner 
   const me = tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id;
   const ok = me && String(me) === localStorage.getItem("dz_owner");
   document.querySelectorAll(".apps .own").forEach(b => { b.hidden = !ok; b.addEventListener("click", () => {
-    try { localStorage.setItem("dz_tab", b.dataset.ctl); } catch (e) {}
-    location.replace("ctl.html" + location.search + "#" + b.dataset.ctl); }); });
+    goTab(b.dataset.ctl); }); });
 } catch (e) {}
-$("goDz").addEventListener("click", () => {
-  try { localStorage.setItem("dz_tab", "dz"); } catch(e){}
-  location.replace("./" + location.search + location.hash);
-});
+$("goDz").addEventListener("click", () => goTab("dz"));
+// переход на другую вкладку — всегда явным ?tab=, чтобы не зависеть от прошлого адреса
+function goTab(tab){
+  try { localStorage.setItem("dz_tab", tab); } catch(e){}
+  const g = new URLSearchParams(location.search).get("g") || localStorage.getItem("dz_gist") || "";
+  location.replace((tab === "dz" ? "./" : "ctl.html") + "?g=" + encodeURIComponent(g) + "&tab=" + tab);
+}
 document.addEventListener("visibilitychange", () => { if (!document.hidden){ render(); pullCloud(); refresh(); } });
 function applyTheme(){ if (tg && tg.colorScheme) document.documentElement.dataset.theme = tg.colorScheme; }
 

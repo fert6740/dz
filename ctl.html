@@ -139,7 +139,7 @@ const tg = window.Telegram && window.Telegram.WebApp;
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const GIST = new URLSearchParams(location.search).get("g");
-const st = { all: false, view: location.hash === "#srv" ? "srv" : "vpn", hours: 24, cfg: null, vpn: null, srv: null, sites: {}, err: null, busy: false };
+const st = { all: false, view: (new URLSearchParams(location.search).get("tab") || location.hash.slice(1)) === "srv" ? "srv" : "vpn", hours: 24, cfg: null, vpn: null, srv: null, sites: {}, err: null, busy: false };
 const get = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
 const put = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 
@@ -320,10 +320,10 @@ document.addEventListener("click", e => {
   if (t.id === "allBtn") { st.all = !st.all; return render(); }
   if (t.dataset.go) {
     try { localStorage.setItem("dz_tab", t.dataset.go); } catch (er) {}
-    return location.replace((t.dataset.go === "pult" ? "pult.html" : "./") + location.search);
+    return location.replace((t.dataset.go === "pult" ? "pult.html" : "./") + "?g=" + encodeURIComponent(GIST || "") + "&tab=" + t.dataset.go);
   }
   if (t.dataset.view && t.dataset.view !== st.view) {
-    st.view = t.dataset.view; history.replaceState(null, "", "#" + st.view);
+    st.view = t.dataset.view; history.replaceState(null, "", "?g=" + encodeURIComponent(GIST || "") + "&tab=" + st.view);
     try { localStorage.setItem("dz_tab", st.view); } catch (er) {}
     st.err = null; render(); return refresh();
   }
