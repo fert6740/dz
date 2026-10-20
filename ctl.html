@@ -275,11 +275,12 @@ function srvView() {
   if (!s) return st.busy ? '<div class="empty">Загружаю…</div>' : '<div class="empty">Данных пока нет.</div>';
   const d = Math.floor(s.uptime / 86400), hh = Math.floor(s.uptime % 86400 / 3600);
   const allOk = s.services.every(x => x.state === "active") && !s.failed.length;
-  const load = s.load[0] / (s.cpus || 1);
+  const load = (s.load[1] ?? s.load[0]) / (s.cpus || 1);   // за 5 мин: минутные всплески не пугают
+  const loadWord = load < 0.5 ? "Низкая" : load < 0.9 ? "Средняя" : "Высокая";
   let h = `<div class="tiles">
-    <div class="tile"><div class="l">Состояние</div><div class="v" style="font-size:17px;color:var(--${allOk ? "good" : "danger"})">${allOk ? "● Всё в порядке" : "● Есть сбои"}</div><div class="s">Рига, HostVDS</div></div>
+    <div class="tile"><div class="l">Состояние</div><div class="v" style="font-family:var(--f-body);font-size:18px;color:var(--${allOk ? "good" : "danger"})">${allOk ? "● В порядке" : "● Есть сбои"}</div><div class="s">Рига, HostVDS</div></div>
     <div class="tile"><div class="l">Работает</div><div class="v num">${d ? d + " дн " : ""}${hh} ч</div><div class="s">без перезагрузки</div></div>
-    <div class="tile"><div class="l">Нагрузка</div><div class="v num">${Math.round(load * 100)}%</div>${bar(load)}<div class="s">${s.load.map(x => x.toFixed(2)).join(" · ")}</div></div>
+    <div class="tile"><div class="l">Нагрузка</div><div class="v" style="font-family:var(--f-body)">${loadWord}</div>${bar(Math.min(load, 1))}<div class="s">процессор занят на ${Math.min(100, Math.round(load * 100))}%</div></div>
     <div class="tile"><div class="l">Память</div><div class="v num">${fmtSize(s.mem_used)}</div>${bar(s.mem_used / s.mem_total)}<div class="s">из ${fmtSize(s.mem_total)}</div></div>
     <div class="tile"><div class="l">Диск</div><div class="v num">${fmtSize(s.disk_used)}</div>${bar(s.disk_used / s.disk_total)}<div class="s">из ${fmtSize(s.disk_total)}</div></div>
     <div class="tile"><div class="l">Трафик за месяц</div><div class="v num">${fmtGB(s.traffic_month)}</div>${bar(s.traffic_month / s.traffic_limit)}<div class="s">из 1000 ГБ · сегодня ${fmtGB(s.traffic_today)}</div></div>
@@ -289,6 +290,10 @@ function srvView() {
   h += `<div class="grid" style="margin-top:16px"><section class="card"><h2>Оплата</h2>
     <div class="big num" style="color:var(--${warn ? "warn" : "ink"})">до ${esc(paid)}</div>
     <div class="sub" style="margin-top:4px">${s.days_left != null ? `через ${s.days_left} ${plural(s.days_left, "день", "дня", "дней")}` : ""}${warn ? " — пора пополнить баланс HostVDS" : ""}</div></section>
+    ${s.steam ? `<section class="card"><h2>Steam-часы · ${esc(s.steam.game)}</h2>
+    <div class="big num">≈ ${Math.floor(s.steam.hours)} ч <span class="sub" style="font-size:15px">из ${s.steam.goal}</span></div>
+    ${bar(s.steam.hours / s.steam.goal, "")}
+    <div class="sub" style="margin-top:6px">${s.steam.eta ? `цель — примерно ${new Date(s.steam.eta + "T12:00:00").toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}` : "цель достигнута — ASF пора выключить"}${s.steam.playing ? "" : " · ⚠️ ASF остановлен, часы не идут"}</div></section>` : ""}
     <section class="card"><h2>Службы</h2>${s.services.map(x => `<div class="srow"><span class="dot ${x.state === "active" ? "ok" : "err"}"></span>
       <span class="n">${esc(x.name)}</span><span class="st">${x.state === "active" ? "работает" : esc(x.state)}</span></div>`).join("")}
       ${s.failed.length ? `<div class="verdict warn" style="margin:12px 0 0">Упавшие: ${s.failed.map(esc).join(", ")}</div>` : ""}</section></div>`;
