@@ -225,10 +225,16 @@ function vpnView() {
       <div class="status"><span class="pill ${ok ? "ok" : "bad"}"><span class="dot"></span>${ok ? "Работает" : "Не работает: " + esc(v.active)}</span></div>
       <div class="chips">${v.online_ok ? (now.length ? now.map(p => `<span class="chip on">● ${esc(p.name)} · ${p.online} ${plural(p.online, "устройство", "устройства", "устройств")}</span>`).join("")
         : '<span class="chip">Сейчас никто не подключён</span>') : '<span class="chip">Кто подключён — неизвестно</span>'}</div></section>`;
-    left += `<section class="card"><h2>Трафик за ${esc(v.month)}</h2>${v.people.map(p => `<div class="person">
+    // Сверху — весь сервер (вход+выход, та же цифра и лимит 1 ТБ, что в Happ); ниже — трафик через VPN по ссылкам.
+    // Байт с сайта проходит сервер дважды (вход и выход), поэтому сумма по ссылкам примерно вдвое меньше общей цифры.
+    const srvT = v.server && v.server.used ? `<div class="person">
+      <div class="prow"><span class="pname">Весь сервер</span><span class="pval num">${fmtGB(v.server.used * 1e9 / 2 ** 30)}<span class="sub"> из 1000 ГБ</span></span></div>
+      ${bar(v.server.used / v.server.limit)}<div class="sub">как в Happ (вход + выход сервера) · ${Math.round(v.server.used * 100 / v.server.limit)}%</div></div>` : "";
+    left += `<section class="card"><h2>Трафик за ${esc(v.month)}</h2>${srvT}${v.people.map(p => `<div class="person">
       <div class="prow"><span class="pname">${esc(p.name)}${p.blocked ? '<span class="tag off">отключён</span>' : ""}</span>
       <span class="pval num">${fmtGB(p.used)}${p.limit ? `<span class="sub"> из ${fmtGB(p.limit)}</span>` : ""}</span></div>
-      ${p.limit ? bar(p.used / p.limit) + `<div class="sub">осталось ${fmtGB(Math.max(0, p.limit - p.used))} · сброс 1-го числа</div>` : '<div class="sub">без лимита</div>'}</div>`).join("")}</section>`;
+      ${p.limit ? bar(p.used / p.limit) + `<div class="sub">через VPN · осталось ${fmtGB(Math.max(0, p.limit - p.used))} · сброс 1-го числа</div>`
+                : `<div class="sub">через VPN, ваша ссылка${srvT ? " · входит в общие 1000 ГБ" : ""}</div>`}</div>`).join("")}</section>`;
     const fr = v.people.find(p => p.id === "friend");
     left += `<section class="card"><h2>Управление</h2><div class="actions">
       <button type="button" class="btn" data-act="restart-hy">🔄 Перезапустить VPN</button>
